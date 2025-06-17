@@ -6,6 +6,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/initView'
+    },
+    {
+      path: '/index',
       name: 'index',
       component: () => import('../views/Index.vue'),
     },
