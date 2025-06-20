@@ -18,13 +18,13 @@
     <!-- 搜索表单 -->
     <div class="search-section">
       <el-form 
-        :model="searchForm" 
+        :model="taskStore.searchForm" 
         class="search-form"
         :inline="true"
       >
         <el-form-item label="任务编号">
           <el-input 
-            v-model="searchForm.taskCode" 
+            v-model="taskStore.searchForm.taskCode" 
             placeholder="请输入任务编号"
             clearable
             style="width: 200px"
@@ -32,7 +32,7 @@
         </el-form-item>
         <el-form-item label="创建人">
           <el-input 
-            v-model="searchForm.creator" 
+            v-model="taskStore.searchForm.creator" 
             placeholder="请输入创建人"
             clearable
             style="width: 200px"
@@ -40,7 +40,7 @@
         </el-form-item>
         <el-form-item label="执行人">
           <el-input 
-            v-model="searchForm.executor" 
+            v-model="taskStore.searchForm.executor" 
             placeholder="请输入执行人"
             clearable
             style="width: 200px"
@@ -48,7 +48,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select 
-            v-model="searchForm.taskStatus" 
+            v-model="taskStore.searchForm.taskStatus" 
             placeholder="请选择状态"
             clearable
             style="width: 150px"
@@ -60,10 +60,10 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch" :icon="Search">
+          <el-button type="primary" @click="taskStore.searchTasks" :icon="Search">
             搜索
           </el-button>
-          <el-button @click="resetSearch" :icon="Refresh">
+          <el-button @click="taskStore.resetSearch" :icon="Refresh">
             重置
           </el-button>
         </el-form-item>
@@ -74,7 +74,7 @@
     <div class="toolbar">
       <el-button 
         type="primary" 
-        @click="showAddDialog = true"
+        @click="showTaskDialog = true"
         :icon="VideoCamera"
       >
         新增任务
@@ -84,8 +84,8 @@
     <!-- 任务表格 -->
     <div class="table-section">
       <el-table 
-        :data="taskList" 
-        v-loading="loading"
+        :data="taskStore.taskList" 
+        v-loading="taskStore.loading"
         border
         stripe
         style="width: 100%"
@@ -134,7 +134,7 @@
                 v-if="row.taskStatus === '待巡视'"
                 type="primary" 
                 size="small"
-                @click="startTask(row)"
+                @click="startTask(row.id)"
               >
                 启动
               </el-button>
@@ -147,6 +147,14 @@
                 继续
               </el-button>
               <el-button 
+                v-if="row.taskStatus === '待上传'"
+                type="primary" 
+                size="small"
+                @click="uploadTask(row.id)"
+              >
+                上传
+              </el-button>
+              <el-button 
                 v-if="['待上传', '已完成'].includes(row.taskStatus)"
                 type="info" 
                 size="small"
@@ -157,7 +165,7 @@
               <el-button 
                 v-if="row.taskStatus === '待巡视'"
                 size="small"
-                @click="editTask(row)"
+                @click="openEditTaskDialog(row)"
               >
                 修改
               </el-button>
@@ -165,7 +173,7 @@
                 v-if="row.taskStatus === '待巡视'"
                 type="danger" 
                 size="small"
-                @click="deleteTask(row)"
+                @click="deleteTask(row.id)"
               >
                 删除
               </el-button>
@@ -177,40 +185,40 @@
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
-          v-model:current-page="pagination.pageNum"
-          v-model:page-size="pagination.pageSize"
+          v-model:current-page="taskStore.pagination.pageNum"
+          v-model:page-size="taskStore.pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
+          :total="taskStore.pagination.total"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
+          @size-change="taskStore.setPageSize"
+          @current-change="taskStore.setCurrentPage"
         />
       </div>
     </div>
 
     <!-- 新增/编辑任务弹窗 -->
     <el-dialog
-      v-model="showAddDialog"
+      v-model="showTaskDialog"
       :title="isEdit ? '编辑任务' : '新增任务'"
       width="50%"
       :before-close="handleCloseDialog"
     >
       <el-form
         ref="taskFormRef"
-        :model="taskForm"
+        :model="currentTask"
         :rules="taskFormRules"
         label-width="120px"
       >
         <el-form-item label="任务编号" prop="taskCode">
           <el-input 
-            v-model="taskForm.taskCode" 
+            v-model="currentTask.taskCode" 
             :disabled="isEdit"
             placeholder="系统自动生成"
           />
         </el-form-item>
         <el-form-item label="任务名称" prop="taskName">
           <el-input 
-            v-model="taskForm.taskName" 
+            v-model="currentTask.taskName" 
             placeholder="请输入任务名称"
           />
         </el-form-item>
@@ -218,7 +226,7 @@
           <el-col :span="12">
             <el-form-item label="起始地点" prop="startPos">
               <el-input 
-                v-model="taskForm.startPos" 
+                v-model="currentTask.startPos" 
                 placeholder="请输入起始地点"
               />
             </el-form-item>
@@ -226,7 +234,7 @@
           <el-col :span="12">
             <el-form-item label="任务距离" prop="taskTrip">
               <el-input 
-                v-model="taskForm.taskTrip" 
+                v-model="currentTask.taskTrip" 
                 placeholder="请输入任务距离"
               />
             </el-form-item>
@@ -236,7 +244,7 @@
           <el-col :span="12">
             <el-form-item label="创建人" prop="creator">
               <el-input 
-                v-model="taskForm.creator" 
+                v-model="currentTask.creator" 
                 placeholder="请输入创建人"
               />
             </el-form-item>
@@ -244,7 +252,7 @@
           <el-col :span="12">
             <el-form-item label="执行人" prop="executor">
               <el-input 
-                v-model="taskForm.executor" 
+                v-model="currentTask.executor" 
                 placeholder="请输入执行人"
               />
             </el-form-item>
@@ -252,7 +260,7 @@
         </el-row>
         <el-form-item label="备注" prop="remark">
           <el-input 
-            v-model="taskForm.remark" 
+            v-model="currentTask.remark" 
             type="textarea"
             :rows="3"
             placeholder="请输入备注信息"
@@ -284,43 +292,26 @@ import {
   VideoCamera
 } from '@element-plus/icons-vue'
 import { 
-  listTask, 
-  addTask, 
+  addTask as addTaskApi, 
   updateTask, 
   delTask, 
-  startTask as startTaskApi 
+  startTask as startTaskApi,
+  uploadTask as uploadTaskApi
 } from '@/api/task'
 import { formatDateTime, generateTaskCode } from '@/utils/common'
+import { useTaskStore } from '@/stores/task';
 
 const router = useRouter()
+const taskStore = useTaskStore();
 
 // 响应式数据
-const loading = ref(false)
 const saving = ref(false)
-const showAddDialog = ref(false)
+const showTaskDialog = ref(false)
 const isEdit = ref(false)
 const taskFormRef = ref(null)
 
-// 搜索表单
-const searchForm = reactive({
-  taskCode: '',
-  creator: '',
-  executor: '',
-  taskStatus: ''
-})
-
-// 分页信息
-const pagination = reactive({
-  pageNum: 1,
-  pageSize: 20,
-  total: 0
-})
-
-// 任务列表
-const taskList = ref([])
-
 // 任务表单
-const taskForm = reactive({
+const currentTask = reactive({
   id: null,
   taskCode: '',
   taskName: '',
@@ -361,64 +352,6 @@ const getStatusTagType = (status) => {
   return statusMap[status] || ''
 }
 
-// 获取任务列表
-const getTaskList = async () => {
-  loading.value = true
-  try {
-    const params = {
-      ...searchForm,
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize
-    }
-    
-    // 过滤空值
-    Object.keys(params).forEach(key => {
-      if (params[key] === '') {
-        delete params[key]
-      }
-    })
-    
-    const response = await listTask(params)
-    
-    taskList.value = response.rows || []
-    pagination.total = response.total || 0
-    
-  } catch (error) {
-    ElMessage.error('获取任务列表失败')
-    console.error(error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  pagination.pageNum = 1
-  getTaskList()
-}
-
-// 重置搜索
-const resetSearch = () => {
-  Object.keys(searchForm).forEach(key => {
-    searchForm[key] = ''
-  })
-  pagination.pageNum = 1
-  getTaskList()
-}
-
-// 分页大小改变
-const handleSizeChange = (size) => {
-  pagination.pageSize = size
-  pagination.pageNum = 1
-  getTaskList()
-}
-
-// 页码改变
-const handleCurrentChange = (page) => {
-  pagination.pageNum = page
-  getTaskList()
-}
-
 // 查看任务详情
 const viewTaskDetail = (row) => {
   router.push({
@@ -428,10 +361,16 @@ const viewTaskDetail = (row) => {
 }
 
 // 启动任务
-const startTask = async (row) => {
+const startTask = async (taskId) => {
   try {
+    const taskToStart = taskStore.taskList.find(task => task.id === taskId);
+    if (!taskToStart) {
+      ElMessage.error('任务不存在');
+      return;
+    }
+
     await ElMessageBox.confirm(
-      `确定要启动任务 "${row.taskName}" 吗？`,
+      `确定要启动任务 "${taskToStart.taskName}" 吗？`,
       '确认启动',
       {
         confirmButtonText: '确定',
@@ -440,13 +379,13 @@ const startTask = async (row) => {
       }
     )
     
-    await startTaskApi(row.id)
+    await startTaskApi(taskId)
     ElMessage.success('任务启动成功')
     
     // 跳转到任务执行页面
     router.push({
       path: '/taskExecuteView',
-      query: { id: row.id }
+      query: { id: taskId }
     })
     
   } catch (error) {
@@ -465,18 +404,24 @@ const continueTask = (row) => {
   })
 }
 
-// 编辑任务
-const editTask = (row) => {
+// 打开编辑任务弹窗
+const openEditTaskDialog = (row) => {
   isEdit.value = true
-  Object.assign(taskForm, row)
-  showAddDialog.value = true
+  Object.assign(currentTask, row)
+  showTaskDialog.value = true
 }
 
 // 删除任务
-const deleteTask = async (row) => {
+const deleteTask = async (taskId) => {
   try {
+    const taskToDelete = taskStore.taskList.find(task => task.id === taskId);
+    if (!taskToDelete) {
+      ElMessage.error('任务不存在');
+      return;
+    }
+
     await ElMessageBox.confirm(
-      `确定要删除任务 "${row.taskName}" 吗？此操作不可恢复。`,
+      `确定要删除任务 "${taskToDelete.taskName}" 吗？此操作不可恢复。`,
       '确认删除',
       {
         confirmButtonText: '确定',
@@ -485,15 +430,45 @@ const deleteTask = async (row) => {
       }
     )
     
-    await delTask(row.id)
+    await delTask(taskId)
     ElMessage.success('删除成功')
-    getTaskList()
+    taskStore.loadTaskList()
     
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
       console.error(error)
     }
+  }
+}
+
+// 新增任务
+const addTask = async () => {
+  try {
+    // 新增时生成任务编号
+    if (!currentTask.taskCode) {
+      currentTask.taskCode = generateTaskCode()
+    }
+    await addTaskApi(currentTask)
+    ElMessage.success('创建成功')
+    return true;
+  } catch (error) {
+    ElMessage.error('创建失败')
+    console.error(error)
+    return false;
+  }
+}
+
+// 编辑任务
+const editTask = async () => {
+  try {
+    await updateTask(currentTask)
+    ElMessage.success('修改成功')
+    return true;
+  } catch (error) {
+    ElMessage.error('修改失败')
+    console.error(error)
+    return false;
   }
 }
 
@@ -506,26 +481,24 @@ const saveTask = async () => {
     
     saving.value = true
     
+    let success = false;
     if (isEdit.value) {
-      await updateTask(taskForm)
-      ElMessage.success('修改成功')
+      success = await editTask();
     } else {
-      // 新增时生成任务编号
-      if (!taskForm.taskCode) {
-        taskForm.taskCode = generateTaskCode()
-      }
-      await addTask(taskForm)
-      ElMessage.success('创建成功')
+      success = await addTask();
     }
     
-    handleCloseDialog()
-    getTaskList()
+    if (success) {
+      handleCloseDialog()
+      taskStore.loadTaskList()
+    }
     
   } catch (error) {
     if (error.errors) {
       ElMessage.error('请检查表单填写是否正确')
     } else {
-      ElMessage.error(isEdit.value ? '修改失败' : '创建失败')
+      // This catch block will now only handle validation errors or unexpected errors
+      // Specific add/edit errors are handled within addTask/editTask
       console.error(error)
     }
   } finally {
@@ -535,7 +508,7 @@ const saveTask = async () => {
 
 // 关闭弹窗
 const handleCloseDialog = () => {
-  showAddDialog.value = false
+  showTaskDialog.value = false
   isEdit.value = false
   
   // 重置表单
@@ -543,14 +516,32 @@ const handleCloseDialog = () => {
     taskFormRef.value.resetFields()
   }
   
-  Object.keys(taskForm).forEach(key => {
-    taskForm[key] = key === 'id' ? null : ''
+  Object.keys(currentTask).forEach(key => {
+    currentTask[key] = key === 'id' ? null : ''
   })
 }
 
+// 上传任务数据
+const uploadTask = async (taskId) => {
+  try {
+    const taskToUpload = taskStore.taskList.find(task => task.id === taskId);
+    if (!taskToUpload) {
+      ElMessage.error('任务不存在');
+      return;
+    }
+    ElMessage.info(`开始上传任务 [${taskToUpload.taskName}] 的数据`);
+    await uploadTaskApi(taskId); 
+    ElMessage.success('任务数据上传成功');
+    taskStore.loadTaskList(); // Refresh list after upload
+  } catch (error) {
+    ElMessage.error('任务数据上传失败');
+    console.error(error);
+  }
+};
+
 // 页面加载时获取数据
 onMounted(() => {
-  getTaskList()
+  taskStore.loadTaskList()
 })
 </script>
 
