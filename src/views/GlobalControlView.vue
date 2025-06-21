@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { ElButton, ElCard, ElTable, ElTableColumn, ElTag, ElAlert, ElDivider, ElRow, ElCol, ElStatistic, ElIcon, ElMessage, ElEmpty } from 'element-plus'
 import { VideoCamera, Setting, Document, TrendCharts, Connection, Warning, CircleCheck, InfoFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+// 导入AGV控制API
+import { agvForward, agvStop, agvBackward } from '@/api/agv'
 
 const router = useRouter()
 
@@ -47,7 +49,35 @@ const getTaskStatusType = (status) => {
 
 // AGV控制函数
 const controlAgv = async (action) => {
-  ElMessage.success(`${action === 'forward' ? '前进' : action === 'stop' ? '停止' : '后退'}指令发送成功`)
+  try {
+    let response
+    switch (action) {
+      case 'forward':
+        console.log('前进')
+        response = await agvForward()
+        break
+      case 'stop':
+        console.log('停止')
+        response = await agvStop()
+        break
+      case 'backward':
+        console.log('后退')
+        response = await agvBackward()
+        break
+      default:
+        ElMessage.error('无效的控制指令')
+        return
+    }
+    
+    if (response.code === 200) {
+      ElMessage.success(`${action === 'forward' ? '前进' : action === 'stop' ? '停止' : '后退'}指令发送成功`)
+    } else {
+      ElMessage.error(response.msg || '控制失败')
+    }
+  } catch (error) {
+    console.error('AGV控制失败:', error)
+    ElMessage.error('AGV控制失败，请检查网络连接')
+  }
 }
 
 // 切换摄像头
