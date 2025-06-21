@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { ElButton, ElIcon } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { Setting, Document, TrendCharts, VideoCamera, Goods } from '@element-plus/icons-vue'
+import { Setting, Document, TrendCharts, VideoCamera, Goods, Connection } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -24,6 +24,16 @@ const goTaskExecuteView = () => {
 
 const goSettingsView = () => {
     router.push('/settingsView')
+}
+
+const goGlobalControl = () => {
+    console.log('点击了全局控制按钮')
+    console.log('当前路由:', router.currentRoute.value.path)
+    router.push('/globalControl').then(() => {
+        console.log('路由跳转成功')
+    }).catch((error) => {
+        console.error('路由跳转失败:', error)
+    })
 }
 </script>
 
@@ -50,7 +60,7 @@ const goSettingsView = () => {
           <el-button size="small" plain>错误诊断</el-button>
           <el-button size="small" plain>设置入口</el-button>
         </div>
-        <el-button class="view-prototype-btn" @click="goInitView">查看原型</el-button>
+        <el-button class="view-prototype-btn" @click="goInitView">进入页面</el-button>
       </div>
 
       <!-- Card 2: 任务列表页面 -->
@@ -64,7 +74,7 @@ const goSettingsView = () => {
           <el-button size="small" plain>状态管理</el-button>
           <el-button size="small" plain>数据上传</el-button>
         </div>
-        <el-button class="view-prototype-btn" @click="goTaskView">查看原型</el-button>
+        <el-button class="view-prototype-btn" @click="goTaskView">进入页面</el-button>
       </div>
 
       <!-- Card 3: 任务详情页面 -->
@@ -78,7 +88,7 @@ const goSettingsView = () => {
           <el-button size="small" plain>故障确认</el-button>
           <el-button size="small" plain>进度展示</el-button>
         </div>
-        <el-button class="view-prototype-btn" @click="goTaskDetailView">查看原型</el-button>
+        <el-button class="view-prototype-btn" @click="goTaskDetailView">进入页面</el-button>
       </div>
 
       <!-- Card 4: 任务执行页面 -->
@@ -92,7 +102,7 @@ const goSettingsView = () => {
           <el-button size="small" plain>车辆控制</el-button>
           <el-button size="small" plain>故障处理</el-button>
         </div>
-        <el-button class="view-prototype-btn" @click="goTaskExecuteView">查看原型</el-button>
+        <el-button class="view-prototype-btn" @click="goTaskExecuteView">进入页面</el-button>
       </div>
 
       <!-- Card 5: 系统设置页面 -->
@@ -105,10 +115,24 @@ const goSettingsView = () => {
           <el-button size="small" plain>参数配置</el-button>
           <el-button size="small" plain>平台管理</el-button>
         </div>
-        <el-button class="view-prototype-btn" @click="goSettingsView">查看原型</el-button>
+        <el-button class="view-prototype-btn" @click="goSettingsView">进入页面</el-button>
       </div>
 
-      <!-- Placeholder for a potential 6th card if needed, based on common grid layouts, though only 5 are clear -->
+      <!-- Card 6: 全局控制中心 -->
+      <div class="card">
+        <el-icon :size="48"><Connection /></el-icon>
+        <h2 class="card-title">全局控制中心</h2>
+        <p class="card-description">AGV智能巡检系统的全局控制中心，实时监控AGV状态、系统状态，并提供统一的控制操作界面。</p>
+        <div class="card-functions">
+          <el-button size="small" plain>实时监控</el-button>
+          <el-button size="small" plain>AGV控制</el-button>
+          <el-button size="small" plain>任务管理</el-button>
+          <el-button size="small" plain>故障处理</el-button>
+        </div>
+        <el-button class="view-prototype-btn" @click="goGlobalControl">进入页面</el-button>
+      </div>
+
+      <!-- Placeholder for a potential 7th card if needed, based on common grid layouts, though only 6 are clear -->
       <!-- <div class="card">
         <el-icon :size="48"><MoreFilled /></el-icon>
         <h2 class="card-title">更多功能</h2>
