@@ -19,6 +19,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Loading, Warning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useVideoStore } from '@/stores/video'
 
 const props = defineProps({
   url: {
@@ -33,18 +34,17 @@ const props = defineProps({
 
 const emit = defineEmits(['error', 'playing'])
 
-// 响应式数据
+// 使用 pinia store
+const videoStore = useVideoStore()
+const { isPlaying, error, setPlaying, setError, volume } = videoStore
+
 const playerContainer = ref(null)
-const isPlaying = ref(false)
-const error = ref('')
 let player = null
 
 // 初始化播放器
 const initPlayer = () => {
   if (!playerContainer.value) return
-  
   try {
-    // 创建ZLMRTCClient实例
     player = new ZLMRTCClient({
       element: playerContainer.value,
       debug: false,
@@ -60,28 +60,21 @@ const initPlayer = () => {
         channels: 2
       }
     })
-
-    // 监听事件
     player.on('error', handleError)
     player.on('playing', handlePlaying)
     player.on('ended', handleEnded)
-    
-    // 开始播放
     player.play()
-    
   } catch (err) {
     handleError(err)
   }
 }
 
-// 重新连接
 const reconnect = () => {
-  error.value = ''
+  setError('')
   destroyPlayer()
   initPlayer()
 }
 
-// 销毁播放器
 const destroyPlayer = () => {
   if (player) {
     player.off('error', handleError)
@@ -92,44 +85,37 @@ const destroyPlayer = () => {
   }
 }
 
-// 错误处理
 const handleError = (err) => {
-  error.value = '视频流连接失败，请检查网络或摄像头状态'
-  isPlaying.value = false
+  setError('视频流连接失败，请检查网络或摄像头状态')
+  setPlaying(false)
   emit('error', err)
   ElMessage.error('视频流连接失败')
 }
 
-// 播放开始
 const handlePlaying = () => {
-  isPlaying.value = true
-  error.value = ''
+  setPlaying(true)
+  setError('')
   emit('playing')
 }
 
-// 播放结束
 const handleEnded = () => {
-  isPlaying.value = false
-  error.value = '视频流已断开'
+  setPlaying(false)
+  setError('视频流已断开')
   emit('error', new Error('视频流已断开'))
 }
 
-// 监听URL变化
 watch(() => props.url, () => {
   reconnect()
 })
 
-// 监听摄像头ID变化
 watch(() => props.cameraId, () => {
   reconnect()
 })
 
-// 组件挂载时初始化
 onMounted(() => {
   initPlayer()
 })
 
-// 组件卸载时清理
 onUnmounted(() => {
   destroyPlayer()
 })

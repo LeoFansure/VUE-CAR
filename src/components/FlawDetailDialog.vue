@@ -87,11 +87,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
 import { updateFlaw } from '@/api/task'
 import { formatDateTime } from '@/utils/common'
+import { useFlawStore } from '@/stores/flaw'
 
 const props = defineProps({
   modelValue: {
@@ -106,30 +107,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
-// 响应式数据
-const visible = ref(false)
-const formRef = ref(null)
-const saving = ref(false)
-
-// 表单数据
-const form = reactive({
-  status: '',
-  remark: ''
-})
-
-// 表单验证规则
-const rules = {
-  status: [
-    { required: true, message: '请选择处理状态', trigger: 'change' }
-  ],
-  remark: [
-    { required: true, message: '请输入处理备注', trigger: 'blur' }
-  ]
-}
+// 使用 pinia store
+const flawStore = useFlawStore()
+const { visible, form, saving, setVisible, setForm, resetForm } = flawStore
 
 // 监听visible变化
 watch(() => props.modelValue, (val) => {
-  visible.value = val
+  setVisible(val)
 })
 
 watch(() => visible.value, (val) => {
@@ -139,35 +123,29 @@ watch(() => visible.value, (val) => {
 // 监听flaw变化
 watch(() => props.flaw, (val) => {
   if (val) {
-    form.status = val.status
-    form.remark = val.remark
+    setForm({ status: val.status, remark: val.remark })
   }
 }, { immediate: true })
 
 // 关闭弹窗
 const handleClose = () => {
-  visible.value = false
+  setVisible(false)
 }
 
 // 保存处理结果
 const handleSave = async () => {
-  if (!formRef.value) return
-  
+  if (!form) return
   try {
-    await formRef.value.validate()
-    
-    saving.value = true
-    
+    await (typeof form.validate === 'function' ? form.validate() : Promise.resolve())
+    flawStore.saving = true
     await updateFlaw({
       id: props.flaw.id,
       status: form.status,
       remark: form.remark
     })
-    
     ElMessage.success('保存成功')
     emit('saved')
     handleClose()
-    
   } catch (error) {
     if (error.errors) {
       ElMessage.error('请检查表单填写是否正确')
@@ -175,7 +153,7 @@ const handleSave = async () => {
       ElMessage.error('保存失败：' + (error.message || '未知错误'))
     }
   } finally {
-    saving.value = false
+    flawStore.saving = false
   }
 }
 </script>
