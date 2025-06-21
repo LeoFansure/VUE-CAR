@@ -1,11 +1,5 @@
 <template>
   <div class="task-container">
-    <!-- 测试信息 -->
-    <div v-if="!taskStore.taskList.length && !taskStore.loading" class="test-info">
-      <h3>任务列表页面加载成功！</h3>
-      <p>当前没有任务数据，请检查API连接或添加测试数据。</p>
-    </div>
-    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="breadcrumb">
@@ -80,7 +74,7 @@
     <div class="toolbar">
       <el-button 
         type="primary" 
-        @click="showTaskDialog = true"
+        @click="openAddTaskDialog"
         :icon="VideoCamera"
       >
         新增任务
@@ -306,6 +300,7 @@ import {
 } from '@/api/task'
 import { formatDateTime, generateTaskCode } from '@/utils/common'
 import { useTaskStore } from '@/stores/task';
+import taskService from '@/services/TaskService'
 
 const router = useRouter()
 const taskStore = useTaskStore();
@@ -385,14 +380,20 @@ const startTask = async (taskId) => {
       }
     )
     
-    await startTaskApi(taskId)
-    ElMessage.success('任务启动成功')
+    // 使用TaskService启动任务
+    const result = await taskService.startTask(taskId)
     
-    // 跳转到任务执行页面
-    router.push({
-      path: '/taskExecuteView',
-      query: { id: taskId }
-    })
+    if (result.success) {
+      ElMessage.success(result.message || '任务启动成功')
+      
+      // 跳转到任务执行页面
+      router.push({
+        path: '/taskExecuteView',
+        query: { id: taskId }
+      })
+    } else {
+      ElMessage.error(result.message || '启动任务失败')
+    }
     
   } catch (error) {
     if (error !== 'cancel') {
@@ -436,9 +437,15 @@ const deleteTask = async (taskId) => {
       }
     )
     
-    await delTask(taskId)
-    ElMessage.success('删除成功')
-    taskStore.loadTaskList()
+    // 使用TaskService删除任务
+    const result = await taskService.deleteTask(taskId)
+    
+    if (result.success) {
+      ElMessage.success(result.message || '删除成功')
+      taskStore.loadTaskList()
+    } else {
+      ElMessage.error(result.message || '删除失败')
+    }
     
   } catch (error) {
     if (error !== 'cancel') {
@@ -455,9 +462,17 @@ const addTask = async () => {
     if (!currentTask.taskCode) {
       currentTask.taskCode = generateTaskCode()
     }
-    await addTaskApi(currentTask)
-    ElMessage.success('创建成功')
-    return true;
+    
+    // 使用TaskService创建任务
+    const result = await taskService.createTask(currentTask)
+    
+    if (result.success) {
+      ElMessage.success(result.message || '创建成功')
+      return true;
+    } else {
+      ElMessage.error(result.message || '创建失败')
+      return false;
+    }
   } catch (error) {
     ElMessage.error('创建失败')
     console.error(error)
@@ -468,9 +483,16 @@ const addTask = async () => {
 // 编辑任务
 const editTask = async () => {
   try {
-    await updateTask(currentTask)
-    ElMessage.success('修改成功')
-    return true;
+    // 使用TaskService更新任务
+    const result = await taskService.updateTask(currentTask)
+    
+    if (result.success) {
+      ElMessage.success(result.message || '修改成功')
+      return true;
+    } else {
+      ElMessage.error(result.message || '修改失败')
+      return false;
+    }
   } catch (error) {
     ElMessage.error('修改失败')
     console.error(error)
@@ -535,15 +557,29 @@ const uploadTask = async (taskId) => {
       ElMessage.error('任务不存在');
       return;
     }
+    
     ElMessage.info(`开始上传任务 [${taskToUpload.taskName}] 的数据`);
-    await uploadTaskApi(taskId); 
-    ElMessage.success('任务数据上传成功');
-    taskStore.loadTaskList(); // Refresh list after upload
+    
+    // 使用TaskService上传任务数据
+    const result = await taskService.uploadTaskData(taskId)
+    
+    if (result.success) {
+      ElMessage.success(result.message || '任务数据上传成功');
+      taskStore.loadTaskList(); // Refresh list after upload
+    } else {
+      ElMessage.error(result.message || '任务数据上传失败');
+    }
   } catch (error) {
     ElMessage.error('任务数据上传失败');
     console.error(error);
   }
 };
+
+// 打开新增任务弹窗
+const openAddTaskDialog = () => {
+  isEdit.value = false
+  showTaskDialog.value = true
+}
 
 // 页面加载时获取数据
 onMounted(() => {
@@ -558,25 +594,6 @@ onMounted(() => {
   padding: 24px;
   background: #f5f5f5;
   min-height: 100vh;
-  
-  .test-info {
-    background: #e1f3d8;
-    border: 1px solid #b3d8a4;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
-    text-align: center;
-    
-    h3 {
-      color: #67c23a;
-      margin: 0 0 8px 0;
-    }
-    
-    p {
-      color: #606266;
-      margin: 0;
-    }
-  }
   
   .page-header {
     display: flex;

@@ -24,14 +24,14 @@
           <div class="image-container">
             <div class="image-title">
               故障图片显示区域
-              <div class="subtitle">(当前查看: {{ currentFlaw ? currentFlaw.flawName : '隧道壁面裂缝' }})</div>
+              <div class="subtitle">(当前查看: {{ currentFlaw ? currentFlaw.flawName : '请选择故障' }})</div>
             </div>
             <div class="image-display" v-loading="imageLoading">
               <img 
-                v-if="currentFlaw && currentFlaw.imageUrl" 
-                :src="currentFlaw.imageUrl" 
+                v-if="currentFlaw && currentFlaw.flawImageUrl" 
+                :src="currentFlaw.flawImageUrl" 
                 alt="故障图片"
-                @click="previewImage(currentFlaw.imageUrl)"
+                @click="previewImage(currentFlaw.flawImageUrl)"
               />
               <div v-else class="no-image">
                 <el-icon><Picture /></el-icon>
@@ -48,31 +48,31 @@
             <div class="info-list">
               <div class="info-item">
                 <div class="info-label"><el-icon><Ticket /></el-icon> 巡视任务编号</div>
-                <div class="info-value">{{ taskDetail.taskCode || 'TASK20231201001' }}</div>
+                <div class="info-value">{{ taskDetail.taskCode }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><Calendar /></el-icon> 巡视开始时间</div>
-                <div class="info-value">{{ formatDateTime(taskDetail.execTime) || '2023-12-01 09:00:00' }}</div>
+                <div class="info-value">{{ formatDateTime(taskDetail.execTime) }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><Calendar /></el-icon> 巡视结束时间</div>
-                <div class="info-value">{{ formatDateTime(taskDetail.endTime) || '2023-12-01 10:30:00' }}</div>
+                <div class="info-value">{{ formatDateTime(taskDetail.endTime) }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><Location /></el-icon> 巡行路线距离</div>
-                <div class="info-value">{{ taskDetail.taskTrip || '500' }} 米</div>
+                <div class="info-value">{{ taskDetail.taskTrip }} 米</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><Warning /></el-icon> 故障总计</div>
-                <div class="info-value">{{ flawList.length || 4 }}</div>
+                <div class="info-value">{{ flawList.length }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><Check /></el-icon> 已确定故障</div>
-                <div class="info-value">{{ getConfirmedFlawCount() || 2 }}</div>
+                <div class="info-value">{{ getConfirmedFlawCount() }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label"><el-icon><QuestionFilled /></el-icon> 疑似故障</div>
-                <div class="info-value">{{ getUnconfirmedFlawCount() || 1 }}</div>
+                <div class="info-value">{{ getUnconfirmedFlawCount() }}</div>
               </div>
             </div>
           </div>
@@ -84,6 +84,7 @@
               style="width: 100%"
               :highlight-current-row="true"
               @row-click="selectFlaw"
+              v-loading="tableLoading"
             >
               <el-table-column label="故障名称" min-width="120">
                 <template #default="{ row }">
@@ -99,7 +100,7 @@
               </el-table-column>
               <el-table-column label="故障位置" width="100">
                 <template #default="{ row }">
-                  {{ row.flawPosition }}m
+                  {{ row.flawDistance }}m
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="100" align="center">
@@ -131,14 +132,14 @@
             @click="selectFlaw(flaw)"
           >
             <el-tooltip 
-              :content="flaw.flawName + ' - ' + flaw.flawPosition + 'm'" 
+              :content="flaw.flawName + ' - ' + flaw.flawDistance + 'm'" 
               placement="top"
             >
               <div class="marker-dot"></div>
             </el-tooltip>
           </div>
         </div>
-        <div class="distance-label">{{ taskDetail.taskTrip || '500' }}m</div>
+        <div class="distance-label">{{ taskDetail.taskTrip }}m</div>
       </div>
   
       <!-- 故障详情弹窗 -->
@@ -146,14 +147,15 @@
         v-model="showFlawDialog"
         title="故障详情"
         width="600px"
+        :before-close="handleCloseDialog"
       >
         <div v-if="currentFlaw" class="flaw-dialog-content">
           <div class="flaw-image">
             <img 
-              v-if="currentFlaw.imageUrl" 
-              :src="currentFlaw.imageUrl" 
+              v-if="currentFlaw.flawImageUrl" 
+              :src="currentFlaw.flawImageUrl" 
               alt="故障图片"
-              @click="previewImage(currentFlaw.imageUrl)"
+              @click="previewImage(currentFlaw.flawImageUrl)"
             />
             <div v-else class="no-image">
               <el-icon><Picture /></el-icon>
@@ -172,7 +174,7 @@
             </div>
             <div class="info-row">
               <span class="info-label">故障位置:</span>
-              <span class="info-value">{{ currentFlaw.flawPosition }}m</span>
+              <span class="info-value">{{ currentFlaw.flawDistance }}m</span>
             </div>
             <div class="info-row">
               <span class="info-label">故障状态:</span>
@@ -183,6 +185,17 @@
                   <el-option label="误报" value="false_alarm" />
                 </el-select>
               </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">故障描述:</span>
+              <div class="info-value">
+                <el-input
+                  v-model="currentFlaw.flawDesc"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="请输入故障描述"
+                />
+              </div>
             </div>
             <div class="info-row">
               <span class="info-label">故障备注:</span>
@@ -200,8 +213,8 @@
         
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="showFlawDialog = false">取消</el-button>
-            <el-button type="primary" @click="confirmFlaw">确认</el-button>
+            <el-button @click="handleCloseDialog">取消</el-button>
+            <el-button type="primary" @click="saveFlawInfo" :loading="saving">确认</el-button>
           </div>
         </template>
       </el-dialog>
@@ -216,8 +229,8 @@
   </template>
   
   <script setup>
-  import { ref, reactive, onMounted, computed } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { ref, reactive, onMounted } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { 
     ArrowRight, 
@@ -231,52 +244,20 @@
     QuestionFilled
   } from '@element-plus/icons-vue'
   import { formatDateTime } from '@/utils/common'
+  import { getTask } from '@/api/task'
+  import { listFlaw, updateFlaw, checkAllConfirmed } from '@/api/flaw'
   
+  const route = useRoute()
   const router = useRouter()
   
   // 响应式数据
   const taskDetail = ref({})
-  const flawList = ref([
-    {
-      id: 1,
-      flawName: '隧道壁面裂缝',
-      flawType: '结构缺陷',
-      flawPosition: 100,
-      imageUrl: 'https://example.com/flaw1.jpg',
-      status: 'confirmed',
-      remark: '壁面出现明显裂缝，需要修复'
-    },
-    {
-      id: 2,
-      flawName: '渗水点',
-      flawType: '渗漏问题',
-      flawPosition: 225,
-      imageUrl: 'https://example.com/flaw2.jpg',
-      status: 'confirmed',
-      remark: '隧道顶部有渗水现象'
-    },
-    {
-      id: 3,
-      flawName: '设备损坏',
-      flawType: '设备故障',
-      flawPosition: 350,
-      imageUrl: 'https://example.com/flaw3.jpg',
-      status: 'suspected',
-      remark: '可能存在设备损坏，需要进一步确认'
-    },
-    {
-      id: 4,
-      flawName: '螺栓松动',
-      flawType: '设施损伤',
-      flawPosition: 425,
-      imageUrl: 'https://example.com/flaw4.jpg',
-      status: 'false_alarm',
-      remark: '经检查确认为误报'
-    }
-  ])
+  const flawList = ref([])
   const currentFlaw = ref(null)
   const showFlawDialog = ref(false)
   const imageLoading = ref(false)
+  const tableLoading = ref(false)
+  const saving = ref(false)
   const showImageViewer = ref(false)
   const previewImageUrl = ref('')
   
@@ -292,8 +273,9 @@
   
   // 计算故障在进度条上的位置
   const calculateFlawPosition = (flaw) => {
-    const totalDistance = taskDetail.value.taskTrip || 500
-    const position = (flaw.flawPosition / totalDistance) * 100
+    const totalDistance = taskDetail.value.taskTrip || 0
+    if (totalDistance === 0) return '0%'
+    const position = (flaw.flawDistance / totalDistance) * 100
     return `${position}%`
   }
   
@@ -311,9 +293,7 @@
   // 选择故障
   const selectFlaw = (flaw) => {
     imageLoading.value = true
-    currentFlaw.value = flaw
-    
-    // 模拟图片加载
+    currentFlaw.value = JSON.parse(JSON.stringify(flaw))
     setTimeout(() => {
       imageLoading.value = false
     }, 500)
@@ -327,28 +307,117 @@
   
   // 确认故障
   const confirmFlaw = async () => {
+    if (!currentFlaw.value) return
+    
     try {
-      // 这里应该调用API更新故障信息
-      // await updateFlawRemark(currentFlaw.value.id, currentFlaw.value)
+      saving.value = true
+      const flawData = {
+        id: currentFlaw.value.id,
+        status: currentFlaw.value.status
+      }
+      await updateFlaw(flawData)
       
       // 更新本地数据
       const index = flawList.value.findIndex(item => item.id === currentFlaw.value.id)
       if (index !== -1) {
-        flawList.value[index] = { ...currentFlaw.value }
+        flawList.value[index] = { ...flawList.value[index], status: currentFlaw.value.status }
+      }
+      
+      ElMessage.success('故障状态更新成功')
+      
+      // 检查是否所有故障都已确认
+      const { data: allConfirmed } = await checkAllConfirmed(taskDetail.value.id)
+      if (allConfirmed) {
+        ElMessage.success('所有故障已确认完成')
+      }
+    } catch (error) {
+      ElMessage.error('故障状态更新失败')
+      console.error(error)
+    } finally {
+      saving.value = false
+    }
+  }
+  
+  // 更新故障备注
+  const updateFlawRemark = async (flawId, remark) => {
+    try {
+      saving.value = true
+      const flawData = {
+        id: flawId,
+        remark: remark
+      }
+      await updateFlaw(flawData)
+      
+      // 更新本地数据
+      const index = flawList.value.findIndex(item => item.id === flawId)
+      if (index !== -1) {
+        flawList.value[index] = { ...flawList.value[index], remark }
+      }
+      
+      ElMessage.success('故障备注更新成功')
+    } catch (error) {
+      ElMessage.error('故障备注更新失败')
+      console.error(error)
+    } finally {
+      saving.value = false
+    }
+  }
+  
+  // 保存故障信息
+  const saveFlawInfo = async () => {
+    if (!currentFlaw.value) return
+    
+    try {
+      saving.value = true
+      
+      const flawData = {
+        id: currentFlaw.value.id,
+        status: currentFlaw.value.status,
+        flawDesc: currentFlaw.value.flawDesc,
+        remark: currentFlaw.value.remark
+      }
+      
+      await updateFlaw(flawData)
+      
+      // 更新本地数据
+      const index = flawList.value.findIndex(item => item.id === currentFlaw.value.id)
+      if (index !== -1) {
+        flawList.value[index] = { 
+          ...flawList.value[index], 
+          status: currentFlaw.value.status,
+          flawDesc: currentFlaw.value.flawDesc,
+          remark: currentFlaw.value.remark
+        }
       }
       
       ElMessage.success('故障信息更新成功')
       showFlawDialog.value = false
+      
     } catch (error) {
       ElMessage.error('故障信息更新失败')
       console.error(error)
+    } finally {
+      saving.value = false
     }
   }
   
   // 预览图片
   const previewImage = (imageUrl) => {
+    if (!imageUrl) return
     previewImageUrl.value = imageUrl
     showImageViewer.value = true
+  }
+  
+  // 返回上一页
+  const goBack = () => {
+    router.back()
+  }
+  
+  // 关闭弹窗
+  const handleCloseDialog = () => {
+    if (saving.value) return
+    showFlawDialog.value = false
+    currentFlaw.value = null
   }
   
   // 加载任务详情
@@ -361,23 +430,8 @@
     }
     
     try {
-      // 这里应该调用API获取任务详情
-      // const response = await getTaskDetail(taskId)
-      // taskDetail.value = response.data
-      
-      // 模拟数据
-      taskDetail.value = {
-        id: taskId,
-        taskCode: 'TASK20231201001',
-        taskName: '隧道巡检任务',
-        startPos: '起始点',
-        taskTrip: 500,
-        creator: '管理员',
-        executor: '操作员A',
-        execTime: '2023-12-01 09:00:00',
-        endTime: '2023-12-01 10:30:00',
-        taskStatus: '已完成'
-      }
+      const { data } = await getTask(taskId)
+      taskDetail.value = data
       
       // 加载故障列表
       await loadFlawList(taskId)
@@ -396,20 +450,15 @@
   // 加载故障列表
   const loadFlawList = async (taskId) => {
     try {
-      // 这里应该调用API获取故障列表
-      // const response = await getFlawList(taskId)
-      // flawList.value = response.data
-      
-      // 使用模拟数据，已在上面定义
+      tableLoading.value = true
+      const { data } = await listFlaw({ taskId })
+      flawList.value = data
     } catch (error) {
       ElMessage.error('获取故障列表失败')
       console.error(error)
+    } finally {
+      tableLoading.value = false
     }
-  }
-  
-  // 返回上一页
-  const goBack = () => {
-    router.back()
   }
   
   // 页面加载时获取数据

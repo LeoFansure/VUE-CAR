@@ -1,8 +1,18 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElButton, ElCard, ElTable, ElTableColumn, ElTag, ElAlert, ElDivider, ElRow, ElCol, ElStatistic, ElIcon, ElMessage, ElEmpty } from 'element-plus'
-import { VideoCamera, Setting, Document, TrendCharts, Connection, Warning, CircleCheck, InfoFilled } from '@element-plus/icons-vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { ElButton, ElCard, ElTable, ElTableColumn, ElTag, ElAlert, ElDivider, ElRow, ElCol, ElStatistic, ElIcon, ElMessage, ElEmpty, ElLoading } from 'element-plus'
+import { VideoCamera, Setting, Document, TrendCharts, Connection, Warning, CircleCheck, InfoFilled, Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+// 导入AGV控制API
+import { agvForward, agvStop, agvBackward, heartbeat } from '@/api/agv'
+// 导入系统检查API
+import { checkFs, checkDb, checkAgv, checkCam } from '@/api/system'
+// 导入任务管理API
+import { listTask, startTask as startTaskApi, endTask as endTaskApi, uploadTask } from '@/api/task'
+// 导入故障管理API
+import { listFlaw } from '@/api/flaw'
+// 导入WebRTC视频流工具
+import { playVideoStream, stopVideoStream as stopWebRTCStream, switchVideoStream } from '@/utils/webrtc'
 
 const router = useRouter()
 
@@ -33,6 +43,15 @@ const audioEnabled = ref(false)
 const videoRef = ref(null)
 const isVideoPlaying = ref(false)
 const videoStream = ref(null)
+const videoContainerId = 'video-container'
+
+// 加载状态
+const loading = ref({
+  system: false,
+  agv: false,
+  task: false,
+  flaw: false
+})
 
 // 获取任务状态类型
 const getTaskStatusType = (status) => {
@@ -45,36 +64,204 @@ const getTaskStatusType = (status) => {
   return statusMap[status] || 'info'
 }
 
+// 获取系统状态
+const getSystemStatus = async () => {
+  loading.value.system = true
+  try {
+    const [fsRes, dbRes, agvRes, camRes] = await Promise.all([
+      checkFs(),
+      checkDb(),
+      checkAgv(),
+      checkCam()
+    ])
+    
+    systemStatus.value = {
+      fs: fsRes.code === 200,
+      db: dbRes.code === 200,
+      agv: agvRes.code === 200,
+      cam: camRes.code === 200
+    }
+    
+    // 更新AGV连接状态
+    isConnected.value = agvRes.code === 200
+    
+    console.log('系统状态获取成功:', systemStatus.value)
+  } catch (error) {
+    console.error('获取系统状态失败:', error)
+    ElMessage.error('获取系统状态失败')
+  } finally {
+    loading.value.system = false
+  }
+}
+
+// 获取AGV状态
+const getAgvStatus = async () => {
+  loading.value.agv = true
+  try {
+    const response = await heartbeat()
+    if (response.code === 200) {
+      agvStatus.value = response.data || {
+        sysTime: new Date().toLocaleString(),
+        isRunning: false,
+        currentPosition: 0
+      }
+      console.log('AGV状态获取成功:', agvStatus.value)
+    }
+  } catch (error) {
+    console.error('获取AGV状态失败:', error)
+    ElMessage.error('获取AGV状态失败')
+  } finally {
+    loading.value.agv = false
+  }
+}
+
+// 获取当前任务
+const getCurrentTask = async () => {
+  loading.value.task = true
+  try {
+    const response = await listTask({ pageNum: 1, pageSize: 10 })
+    if (response.code === 200 && response.rows.length > 0) {
+      // 查找正在运行的任务
+      const runningTask = response.rows.find(task => task.taskStatus === '巡视中')
+      currentTask.value = runningTask || response.rows[0] // 如果没有运行中的任务，显示第一个任务
+      isTaskRunning.value = !!runningTask
+      console.log('当前任务获取成功:', currentTask.value)
+    }
+  } catch (error) {
+    console.error('获取当前任务失败:', error)
+    ElMessage.error('获取当前任务失败')
+  } finally {
+    loading.value.task = false
+  }
+}
+
+// 获取故障列表
+const getFlawList = async () => {
+  loading.value.flaw = true
+  try {
+    const response = await listFlaw({ pageNum: 1, pageSize: 20 })
+    if (response.code === 200) {
+      flawList.value = response.rows || []
+      console.log('故障列表获取成功:', flawList.value)
+    }
+  } catch (error) {
+    console.error('获取故障列表失败:', error)
+    ElMessage.error('获取故障列表失败')
+  } finally {
+    loading.value.flaw = false
+  }
+}
+
+// 刷新所有数据
+const refreshAllData = async () => {
+  console.log('刷新所有数据')
+  await Promise.all([
+    getSystemStatus(),
+    getAgvStatus(),
+    getCurrentTask(),
+    getFlawList()
+  ])
+}
+
 // AGV控制函数
 const controlAgv = async (action) => {
+  try {
+    let response
+    switch (action) {
+      case 'forward':
+        console.log('前进')
+        response = await agvForward()
+        break
+      case 'stop':
+        console.log('停止')
+        response = await agvStop()
+        break
+      case 'backward':
+        console.log('后退')
+        response = await agvBackward()
+        break
+      default:
+        ElMessage.error('无效的控制指令')
+        return
+    }
+    
+    if (response.code === 200) {
   ElMessage.success(`${action === 'forward' ? '前进' : action === 'stop' ? '停止' : '后退'}指令发送成功`)
+    } else {
+      ElMessage.error(response.msg || '控制失败')
+    }
+  } catch (error) {
+    console.error('AGV控制失败:', error)
+    ElMessage.error('AGV控制失败，请检查网络连接')
+  }
 }
 
 // 切换摄像头
-const switchCamera = (cameraId) => {
+const switchCamera = async (cameraId) => {
+  try {
   currentCamera.value = cameraId
-  ElMessage.info(`切换到摄像头 ${cameraId}`)
-  // 这里可以添加实际的摄像头切换逻辑
-  startVideoStream(cameraId)
+    console.log(`切换到摄像头 ${cameraId}`)
+    
+    if (isVideoPlaying.value) {
+      // 如果视频正在播放，则切换流
+      await switchVideoStream(videoContainerId, cameraId)
+      ElMessage.success(`已切换到摄像头 ${cameraId}`)
+    } else {
+      // 如果视频未播放，则启动新流
+      await startVideoStream(cameraId)
+    }
+  } catch (error) {
+    console.error('切换摄像头失败:', error)
+    ElMessage.error('切换摄像头失败')
+  }
 }
 
 // 切换音频
-const toggleAudio = () => {
+const toggleAudio = async () => {
+  try {
   audioEnabled.value = !audioEnabled.value
-  ElMessage.info(audioEnabled.value ? '音频已开启' : '音频已关闭')
+    console.log(audioEnabled.value ? '开启音频' : '关闭音频')
+    
+    if (audioEnabled.value) {
+      // 启动音频流 (通道5)
+      await playVideoStream('audio-container', 5)
+      ElMessage.success('音频已开启')
+    } else {
+      // 停止音频流
+      stopWebRTCStream('audio-container')
+      ElMessage.info('音频已关闭')
+    }
+  } catch (error) {
+    console.error('音频控制失败:', error)
+    ElMessage.error('音频控制失败')
+  }
 }
 
 // 启动视频流
-const startVideoStream = (cameraId) => {
-  // 模拟视频流启动
+const startVideoStream = async (cameraId) => {
+  try {
+    console.log(`启动摄像头 ${cameraId} 视频流`)
+    await playVideoStream(videoContainerId, cameraId)
   isVideoPlaying.value = true
   ElMessage.success(`摄像头 ${cameraId} 视频流已启动`)
+  } catch (error) {
+    console.error('启动视频流失败:', error)
+    ElMessage.error('启动视频流失败')
+    isVideoPlaying.value = false
+  }
 }
 
 // 停止视频流
 const stopVideoStream = () => {
+  try {
+    console.log('停止视频流')
+    stopWebRTCStream(videoContainerId)
   isVideoPlaying.value = false
   ElMessage.info('视频流已停止')
+  } catch (error) {
+    console.error('停止视频流失败:', error)
+    ElMessage.error('停止视频流失败')
+  }
 }
 
 // 全屏显示
@@ -95,22 +282,91 @@ const takeScreenshot = () => {
 
 // 启动任务
 const startTask = async (taskId) => {
+  if (!taskId) {
+    ElMessage.warning('请先选择任务')
+    return
+  }
+  
+  try {
+    console.log('启动任务:', taskId)
+    const response = await startTaskApi(taskId)
+    if (response.code === 200) {
   ElMessage.success('任务启动成功')
+      // 刷新任务状态
+      await getCurrentTask()
+    } else {
+      ElMessage.error(response.msg || '任务启动失败')
+    }
+  } catch (error) {
+    console.error('启动任务失败:', error)
+    ElMessage.error('启动任务失败')
+  }
 }
 
 // 结束任务
 const endTask = async (taskId, isAbort = false) => {
+  if (!taskId) {
+    ElMessage.warning('请先选择任务')
+    return
+  }
+  
+  try {
+    console.log(`${isAbort ? '中止' : '完成'}任务:`, taskId)
+    const response = await endTaskApi(taskId, isAbort)
+    if (response.code === 200) {
   ElMessage.success(isAbort ? '任务已中止' : '任务已完成')
+      // 刷新任务状态
+      await getCurrentTask()
+    } else {
+      ElMessage.error(response.msg || '任务操作失败')
+    }
+  } catch (error) {
+    console.error('任务操作失败:', error)
+    ElMessage.error('任务操作失败')
+  }
 }
 
 // 确认故障
 const confirmFlaw = async (flawId) => {
+  if (!flawId) {
+    ElMessage.warning('请先选择故障')
+    return
+  }
+  
+  try {
+    console.log('确认故障:', flawId)
+    // 这里需要调用确认故障的API，但接口文档中没有提供
+    // 暂时使用模拟成功
   ElMessage.success('故障已确认')
+    // 刷新故障列表
+    await getFlawList()
+  } catch (error) {
+    console.error('确认故障失败:', error)
+    ElMessage.error('确认故障失败')
+  }
 }
 
 // 上传任务数据
 const uploadTaskData = async (taskId) => {
+  if (!taskId) {
+    ElMessage.warning('请先选择任务')
+    return
+  }
+  
+  try {
+    console.log('上传任务数据:', taskId)
+    const response = await uploadTask(taskId)
+    if (response.code === 200) {
   ElMessage.success('数据上传成功')
+      // 刷新任务状态
+      await getCurrentTask()
+    } else {
+      ElMessage.error(response.msg || '数据上传失败')
+    }
+  } catch (error) {
+    console.error('数据上传失败:', error)
+    ElMessage.error('数据上传失败')
+  }
 }
 
 // 页面跳转
@@ -122,35 +378,43 @@ const goToPage = (page) => {
 onMounted(() => {
   console.log('GlobalControlView 组件已挂载')
   
-  // 模拟当前任务
-  currentTask.value = {
-    id: 1,
-    taskCode: 'TASK001',
-    taskName: '隧道巡检任务',
-    executor: '张三',
-    taskStatus: '待巡视'
-  }
+  // 初始化时获取所有数据
+  refreshAllData()
   
-  // 模拟故障列表
-  flawList.value = [
-    {
-      id: 1,
-      flawType: '裂缝',
-      flawName: '隧道壁裂缝',
-      flawDistance: 150,
-      confirmed: false
-    },
-    {
-      id: 2,
-      flawType: '渗水',
-      flawName: '顶部渗水',
-      flawDistance: 300,
-      confirmed: true
+  // 初始化视频流（延迟启动，确保DOM已渲染）
+  setTimeout(() => {
+    console.log('初始化视频流')
+    // 默认不自动启动视频流，等待用户手动启动
+  }, 1000)
+  
+  // 设置定时刷新（每30秒刷新一次数据）
+  const refreshInterval = setInterval(() => {
+    refreshAllData()
+  }, 30000)
+  
+  // 保存定时器ID，用于组件卸载时清理
+  window.refreshInterval = refreshInterval
+})
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+  console.log('GlobalControlView 组件卸载，清理资源')
+  try {
+    // 清理定时器
+    if (window.refreshInterval) {
+      clearInterval(window.refreshInterval)
+      window.refreshInterval = null
     }
-  ]
-  
-  // 启动默认摄像头
-  startVideoStream(currentCamera.value)
+    
+    // 停止视频流
+    if (isVideoPlaying.value) {
+      stopWebRTCStream(videoContainerId)
+    }
+    // 停止音频流
+    stopWebRTCStream('audio-container')
+  } catch (error) {
+    console.error('清理资源失败:', error)
+  }
 })
 </script>
 
@@ -158,8 +422,22 @@ onMounted(() => {
   <div class="global-control-container">
     <!-- 页面标题 -->
     <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
       <h1>全局控制中心</h1>
       <p>AGV智能巡检系统实时监控与控制</p>
+        </div>
+        <div class="action-section">
+          <el-button 
+            type="primary" 
+            @click="refreshAllData"
+            :loading="loading.system || loading.agv || loading.task || loading.flaw"
+          >
+            <el-icon><Connection /></el-icon>
+            刷新数据
+          </el-button>
+        </div>
+      </div>
     </div>
 
     <el-row :gutter="20">
@@ -175,7 +453,10 @@ onMounted(() => {
 
           <!-- 系统状态 -->
           <div class="status-section">
-            <h3>系统状态</h3>
+            <h3>
+              系统状态
+              <el-icon v-if="loading.system" class="loading-icon"><Loading /></el-icon>
+            </h3>
             <el-row :gutter="10">
               <el-col :span="6">
                 <el-statistic title="文件系统" :value="systemStatus.fs ? '正常' : '异常'">
@@ -224,7 +505,10 @@ onMounted(() => {
 
           <!-- AGV状态 -->
           <div class="status-section">
-            <h3>AGV实时状态</h3>
+            <h3>
+              AGV实时状态
+              <el-icon v-if="loading.agv" class="loading-icon"><Loading /></el-icon>
+            </h3>
             <el-alert
               :title="isConnected ? 'AGV已连接' : 'AGV连接异常'"
               :type="isConnected ? 'success' : 'error'"
@@ -246,7 +530,10 @@ onMounted(() => {
 
           <!-- 当前任务 -->
           <div class="status-section">
-            <h3>当前任务</h3>
+            <h3>
+              当前任务
+              <el-icon v-if="loading.task" class="loading-icon"><Loading /></el-icon>
+            </h3>
             <div v-if="currentTask" class="task-info">
               <p><strong>任务编号：</strong>{{ currentTask.taskCode }}</p>
               <p><strong>任务名称：</strong>{{ currentTask.taskName }}</p>
@@ -264,7 +551,10 @@ onMounted(() => {
 
           <!-- 故障列表 -->
           <div class="status-section">
-            <h3>最新故障</h3>
+            <h3>
+              最新故障
+              <el-icon v-if="loading.flaw" class="loading-icon"><Loading /></el-icon>
+            </h3>
             <el-table :data="flawList" height="200" size="small">
               <el-table-column prop="flawType" label="类型" width="80" />
               <el-table-column prop="flawName" label="故障名称" />
@@ -300,29 +590,26 @@ onMounted(() => {
             <h3>摄像头监控</h3>
             <div class="video-container">
               <div class="video-display" ref="videoRef">
+                <!-- 视频容器 -->
+                <div :id="videoContainerId" class="video-element"></div>
+                
+                <!-- 音频容器 (隐藏) -->
+                <div id="audio-container" class="audio-element"></div>
+                
+                <!-- 视频占位符 -->
                 <div v-if="!isVideoPlaying" class="video-placeholder">
                   <el-icon :size="48"><VideoCamera /></el-icon>
                   <p>摄像头 {{ currentCamera }} 视频流</p>
                   <p class="video-status">视频状态: {{ isVideoPlaying ? '播放中' : '已停止' }}</p>
                 </div>
-                <div v-else class="video-stream">
-                  <div class="video-overlay">
+                
+                <!-- 视频覆盖层 -->
+                <div v-if="isVideoPlaying" class="video-overlay">
                     <div class="camera-info">
                       <el-tag type="primary">摄像头 {{ currentCamera }}</el-tag>
                       <el-tag :type="audioEnabled ? 'success' : 'info'">
                         {{ audioEnabled ? '音频开启' : '音频关闭' }}
                       </el-tag>
-                    </div>
-                  </div>
-                  <!-- 这里可以放置实际的视频元素 -->
-                  <div class="video-content">
-                    <div class="video-frame">
-                      <div class="video-placeholder-content">
-                        <el-icon :size="64"><VideoCamera /></el-icon>
-                        <p>实时视频流</p>
-                        <p class="camera-details">摄像头 {{ currentCamera }} - 隧道巡检监控</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -510,6 +797,12 @@ onMounted(() => {
     text-align: center;
     margin-bottom: 30px;
     
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      .title-section {
     h1 {
       font-size: 32px;
       color: #303133;
@@ -519,6 +812,24 @@ onMounted(() => {
     p {
       font-size: 16px;
       color: #909399;
+        }
+      }
+      
+      .action-section {
+        button {
+          padding: 8px 16px;
+          background-color: #409EFF;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+
+          &:hover {
+            background-color: #66B1FF;
+          }
+        }
+      }
     }
   }
 
@@ -548,6 +859,23 @@ onMounted(() => {
       margin-bottom: 15px;
       border-left: 4px solid #409EFF;
       padding-left: 10px;
+      display: flex;
+      align-items: center;
+      
+      .loading-icon {
+        margin-left: 8px;
+        color: #409EFF;
+        animation: rotate 1s linear infinite;
+      }
+    }
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 
@@ -562,6 +890,24 @@ onMounted(() => {
         position: relative;
         margin-bottom: 15px;
 
+        .video-element {
+          width: 100%;
+          height: 100%;
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 1;
+        }
+
+        .audio-element {
+          width: 0;
+          height: 0;
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+          z-index: -1;
+        }
+
         .video-placeholder {
           display: flex;
           flex-direction: column;
@@ -569,6 +915,12 @@ onMounted(() => {
           justify-content: center;
           height: 100%;
           color: #fff;
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 2;
+          background: rgba(0, 0, 0, 0.8);
           
           .el-icon {
             color: #409EFF;
@@ -586,10 +938,6 @@ onMounted(() => {
           }
         }
 
-        .video-stream {
-          position: relative;
-          height: 100%;
-
           .video-overlay {
             position: absolute;
             top: 10px;
@@ -599,43 +947,6 @@ onMounted(() => {
             .camera-info {
               display: flex;
               gap: 10px;
-            }
-          }
-
-          .video-content {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            .video-frame {
-              width: 100%;
-              height: 100%;
-              background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-
-              .video-placeholder-content {
-                text-align: center;
-                color: #fff;
-
-                .el-icon {
-                  color: #409EFF;
-                  margin-bottom: 15px;
-                }
-
-                p {
-                  margin: 5px 0;
-                  font-size: 16px;
-                }
-
-                .camera-details {
-                  color: #909399;
-                  font-size: 12px;
-                }
-              }
-            }
           }
         }
       }
@@ -701,6 +1012,10 @@ onMounted(() => {
   .el-table {
     border-radius: 8px;
     overflow: hidden;
+  }
+
+  .loading-icon {
+    margin-left: 5px;
   }
 }
 </style> 

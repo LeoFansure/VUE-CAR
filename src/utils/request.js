@@ -3,7 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://192.168.2.2/prod-api',
+  baseURL: 'http://192.168.2.57/prod-api',
   timeout: 10000
 })
 

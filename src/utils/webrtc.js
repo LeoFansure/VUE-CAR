@@ -6,7 +6,7 @@ import './ZLMRTCClient.js'
 export class WebRTCManager {
   constructor() {
     this.players = new Map() // 存储播放器实例
-    this.baseUrl = 'http://192.168.2.2/webrtc-api'
+    this.baseUrl = 'http://192.168.2.57/webrtc-api'
   }
 
   /**
