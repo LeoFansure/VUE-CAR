@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('../views/Index.vue'),
     },
     {
+      path: '/globalControl',
+      name: 'globalControl',
+      component: () => import('../views/GlobalControlView.vue'),
+    },
+    {
       path: '/initView',
       name: 'initView',
       component: () => import('../views/InitView.vue'),
