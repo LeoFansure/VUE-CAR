@@ -305,64 +305,6 @@
     showFlawDialog.value = true
   }
   
-  // 确认故障
-  const confirmFlaw = async () => {
-    if (!currentFlaw.value) return
-    
-    try {
-      saving.value = true
-      const flawData = {
-        id: currentFlaw.value.id,
-        status: currentFlaw.value.status
-      }
-      await updateFlaw(flawData)
-      
-      // 更新本地数据
-      const index = flawList.value.findIndex(item => item.id === currentFlaw.value.id)
-      if (index !== -1) {
-        flawList.value[index] = { ...flawList.value[index], status: currentFlaw.value.status }
-      }
-      
-      ElMessage.success('故障状态更新成功')
-      
-      // 检查是否所有故障都已确认
-      const { data: allConfirmed } = await checkAllConfirmed(taskDetail.value.id)
-      if (allConfirmed) {
-        ElMessage.success('所有故障已确认完成')
-      }
-    } catch (error) {
-      ElMessage.error('故障状态更新失败')
-      console.error(error)
-    } finally {
-      saving.value = false
-    }
-  }
-  
-  // 更新故障备注
-  const updateFlawRemark = async (flawId, remark) => {
-    try {
-      saving.value = true
-      const flawData = {
-        id: flawId,
-        remark: remark
-      }
-      await updateFlaw(flawData)
-      
-      // 更新本地数据
-      const index = flawList.value.findIndex(item => item.id === flawId)
-      if (index !== -1) {
-        flawList.value[index] = { ...flawList.value[index], remark }
-      }
-      
-      ElMessage.success('故障备注更新成功')
-    } catch (error) {
-      ElMessage.error('故障备注更新失败')
-      console.error(error)
-    } finally {
-      saving.value = false
-    }
-  }
-  
   // 保存故障信息
   const saveFlawInfo = async () => {
     if (!currentFlaw.value) return
@@ -451,8 +393,8 @@
   const loadFlawList = async (taskId) => {
     try {
       tableLoading.value = true
-      const { data } = await listFlaw({ taskId })
-      flawList.value = data
+      const { data } = await getFlawList({ taskId })
+      getFlawList.value = data
     } catch (error) {
       ElMessage.error('获取故障列表失败')
       console.error(error)
