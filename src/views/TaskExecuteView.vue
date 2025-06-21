@@ -41,19 +41,24 @@
         <div class="card">
           <div class="card-header">
             控制台
-            <label class="switch">
-              <input type="checkbox" v-model="agvRunning" />
-              <span class="slider"></span>
-            </label>
+            <el-switch v-model="showConsole" active-color="#67c23a" inactive-color="#dcdfe6" style="margin-left: 12px;" />
           </div>
-          <div class="card-body">
-            <div class="control-buttons">
-              <el-button type="primary" @click="refreshVideo">刷新监控</el-button>
-              <el-select v-model="videoStore.cameraId" class="cam-selector" style="width:120px;">
-                <el-option v-for="(name, idx) in cameraNames" :key="idx" :label="name" :value="idx+1" />
-              </el-select>
-              <el-button type="success" @click="endTaskExecution">完成巡检</el-button>
-              <el-button type="danger" @click="abortTaskExecution">终止巡检</el-button>
+          <div class="card-body" v-if="showConsole">
+            <div class="console-grid large">
+              <div class="console-item top-left">
+                <el-button type="primary" @click="refreshVideo" size="large" class="console-btn">刷新监控</el-button>
+              </div>
+              <div class="console-item top-right">
+                <el-select v-model="videoStore.cameraId" class="cam-selector console-btn" style="width:180px;" size="large">
+                  <el-option v-for="(name, idx) in cameraNames" :key="idx" :label="name" :value="idx+1" />
+                </el-select>
+              </div>
+              <div class="console-item bottom-left">
+                <el-button type="success" @click="endTaskExecution" size="large" class="console-btn">完成巡检</el-button>
+              </div>
+              <div class="console-item bottom-right">
+                <el-button type="danger" @click="abortTaskExecution" size="large" class="console-btn">终止巡检</el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -61,12 +66,9 @@
         <div class="card">
           <div class="card-header">
             车辆状态
-            <label class="switch">
-              <input type="checkbox" v-model="agvRunning" />
-              <span class="slider"></span>
-            </label>
+            <el-switch v-model="showStatus" active-color="#67c23a" inactive-color="#dcdfe6" style="margin-left: 12px;" />
           </div>
-          <div class="card-body">
+          <div class="card-body" v-if="showStatus">
             <div class="info-item">
               <div class="info-label">📄 巡视任务编号</div>
               <div class="info-value">{{ taskInfo.taskCode }}</div>
@@ -137,7 +139,8 @@ const currentPosition = ref(0)
 const flawCount = ref(0)
 const confirmedFlawCount = ref(0)
 const unconfirmedFlawCount = ref(0)
-const agvRunning = ref(true)
+const showConsole = ref(true)
+const showStatus = ref(true)
 
 const videoUrl = computed(() => {
   // 这里应根据实际后端返回的视频流地址拼接
@@ -357,73 +360,48 @@ body {
 .card-body {
     padding: 20px;
 }
-.control-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
+.console-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+  height: 160px;
+  position: relative;
 }
-.btn {
-    padding: 8px 16px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: white;
-    cursor: pointer;
-    font-size: 14px;
+.console-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
-.btn-primary {
-    background: #409eff;
-    border-color: #409eff;
-    color: white;
+.console-item.top-left {
+  grid-row: 1;
+  grid-column: 1;
+  justify-content: flex-start;
 }
-.btn-success {
-    background: #67c23a;
-    border-color: #67c23a;
-    color: white;
+.console-item.top-right {
+  grid-row: 1;
+  grid-column: 2;
+  justify-content: flex-end;
 }
-.btn-danger {
-    background: #f56c6c;
-    border-color: #f56c6c;
-    color: white;
+.console-item.bottom-left {
+  grid-row: 2;
+  grid-column: 1;
+  justify-content: flex-start;
 }
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
+.console-item.bottom-right {
+  grid-row: 2;
+  grid-column: 2;
+  justify-content: flex-end;
 }
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+.el-button[size="large"] {
+  min-width: 110px;
+  font-size: 16px;
+  padding: 12px 0;
 }
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-}
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-input:checked + .slider {
-    background-color: #67c23a;
-}
-input:checked + .slider:before {
-    transform: translateX(26px);
+.el-select[size="large"] .el-input__inner {
+  font-size: 16px;
+  height: 40px;
 }
 .info-item {
     display: flex;
@@ -484,5 +462,37 @@ input:checked + .slider:before {
 }
 .link:hover {
     text-decoration: underline;
+}
+.console-grid.large {
+  min-height: 200px;
+  gap: 8px;
+  padding: 0 0 0 0px;
+  margin-left: -12px;
+  width: calc(100% + 12px);
+}
+.console-item.top-left,
+.console-item.bottom-left {
+  justify-content: flex-start;
+  padding-left: 0;
+}
+.console-item.top-right,
+.console-item.bottom-right {
+  justify-content: flex-end;
+  padding-right: 0;
+}
+.console-btn {
+  min-width: 150px !important;
+  max-width: 200px !important;
+  min-height: 50px !important;
+  max-height: 56px !important;
+  font-size: 18px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  box-sizing: border-box;
+}
+.el-select.console-btn .el-input__inner {
+  font-size: 18px;
+  height: 50px;
+  border-radius: 10px;
 }
 </style>
