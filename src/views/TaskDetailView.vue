@@ -11,7 +11,7 @@
       </div>
       <el-button 
         class="back-btn" 
-        @click="$router.push('/taskView')"
+        @click="goBack"
       >
         <el-icon><Back /></el-icon>
         返回
@@ -217,7 +217,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ArrowRight, 
@@ -232,7 +232,6 @@ import {
 } from '@element-plus/icons-vue'
 import { formatDateTime } from '@/utils/common'
 
-const route = useRoute()
 const router = useRouter()
 
 // 响应式数据
@@ -406,6 +405,11 @@ const loadFlawList = async (taskId) => {
     ElMessage.error('获取故障列表失败')
     console.error(error)
   }
+}
+
+// 返回上一页
+const goBack = () => {
+  router.back()
 }
 
 // 页面加载时获取数据
