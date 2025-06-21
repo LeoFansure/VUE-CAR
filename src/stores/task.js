@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
-import { listTask } from '@/api/task'
+import taskService from '@/services/TaskService'
 
 export const useTaskStore = defineStore('task', () => {
   // 任务列表
@@ -34,9 +34,16 @@ export const useTaskStore = defineStore('task', () => {
         pageSize: pagination.pageSize
       }
       
-      const response = await listTask(params)
-      taskList.value = response.data.list || []
-      pagination.total = response.data.total || 0
+      const result = await taskService.getTaskList(params)
+      
+      if (result.success) {
+        taskList.value = result.data.list || result.data.rows || []
+        pagination.total = result.data.total || 0
+      } else {
+        console.error('加载任务列表失败:', result.message)
+        taskList.value = []
+        pagination.total = 0
+      }
     } catch (error) {
       console.error('加载任务列表失败:', error)
       taskList.value = []
