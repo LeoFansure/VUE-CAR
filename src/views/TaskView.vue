@@ -293,14 +293,13 @@ import {
 } from '@element-plus/icons-vue'
 import { 
   addTask as addTaskApi, 
-  updateTask, 
-  delTask, 
+  updateTask as updateTaskApi,
+  delTask as delTaskApi,
   startTask as startTaskApi,
   uploadTask as uploadTaskApi
 } from '@/api/task'
 import { formatDateTime, generateTaskCode } from '@/utils/common'
 import { useTaskStore } from '@/stores/task';
-import taskService from '@/services/TaskService'
 
 const router = useRouter()
 const taskStore = useTaskStore();
@@ -380,20 +379,15 @@ const startTask = async (taskId) => {
       }
     )
     
-    // 使用TaskService启动任务
-    const result = await taskService.startTask(taskId)
+    // 直接调用 API
+    await startTaskApi(taskId)
+    ElMessage.success('任务启动成功')
     
-    if (result.success) {
-      ElMessage.success(result.message || '任务启动成功')
-      
-      // 跳转到任务执行页面
-      router.push({
-        path: '/taskExecuteView',
-        query: { id: taskId }
-      })
-    } else {
-      ElMessage.error(result.message || '启动任务失败')
-    }
+    // 跳转到任务执行页面
+    router.push({
+      path: '/taskExecuteView',
+      query: { id: taskId }
+    })
     
   } catch (error) {
     if (error !== 'cancel') {
@@ -437,15 +431,10 @@ const deleteTask = async (taskId) => {
       }
     )
     
-    // 使用TaskService删除任务
-    const result = await taskService.deleteTask(taskId)
-    
-    if (result.success) {
-      ElMessage.success(result.message || '删除成功')
-      taskStore.loadTaskList()
-    } else {
-      ElMessage.error(result.message || '删除失败')
-    }
+    // 直接调用 API
+    await delTaskApi(taskId)
+    ElMessage.success('删除成功')
+    taskStore.loadTaskList() // 保持状态管理方式不变
     
   } catch (error) {
     if (error !== 'cancel') {
@@ -463,16 +452,10 @@ const addTask = async () => {
       currentTask.taskCode = generateTaskCode()
     }
     
-    // 使用TaskService创建任务
-    const result = await taskService.createTask(currentTask)
-    
-    if (result.success) {
-      ElMessage.success(result.message || '创建成功')
-      return true;
-    } else {
-      ElMessage.error(result.message || '创建失败')
-      return false;
-    }
+    // 直接调用 API
+    await addTaskApi(currentTask)
+    ElMessage.success('创建成功')
+    return true;
   } catch (error) {
     ElMessage.error('创建失败')
     console.error(error)
@@ -483,16 +466,10 @@ const addTask = async () => {
 // 编辑任务
 const editTask = async () => {
   try {
-    // 使用TaskService更新任务
-    const result = await taskService.updateTask(currentTask)
-    
-    if (result.success) {
-      ElMessage.success(result.message || '修改成功')
-      return true;
-    } else {
-      ElMessage.error(result.message || '修改失败')
-      return false;
-    }
+    // 直接调用 API
+    await updateTaskApi(currentTask)
+    ElMessage.success('修改成功')
+    return true;
   } catch (error) {
     ElMessage.error('修改失败')
     console.error(error)
@@ -560,15 +537,10 @@ const uploadTask = async (taskId) => {
     
     ElMessage.info(`开始上传任务 [${taskToUpload.taskName}] 的数据`);
     
-    // 使用TaskService上传任务数据
-    const result = await taskService.uploadTaskData(taskId)
-    
-    if (result.success) {
-      ElMessage.success(result.message || '任务数据上传成功');
-      taskStore.loadTaskList(); // Refresh list after upload
-    } else {
-      ElMessage.error(result.message || '任务数据上传失败');
-    }
+    // 直接调用 API
+    await uploadTaskApi(taskId); 
+    ElMessage.success('任务数据上传成功');
+    taskStore.loadTaskList(); // 保持状态管理方式不变
   } catch (error) {
     ElMessage.error('任务数据上传失败');
     console.error(error);
