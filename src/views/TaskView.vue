@@ -1,5 +1,11 @@
 <template>
   <div class="task-container">
+    <!-- 测试信息 -->
+    <div v-if="!taskStore.taskList.length && !taskStore.loading" class="test-info">
+      <h3>任务列表页面加载成功！</h3>
+      <p>当前没有任务数据，请检查API连接或添加测试数据。</p>
+    </div>
+    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="breadcrumb">
@@ -541,6 +547,8 @@ const uploadTask = async (taskId) => {
 
 // 页面加载时获取数据
 onMounted(() => {
+  console.log('TaskView 组件已加载')
+  console.log('taskStore:', taskStore)
   taskStore.loadTaskList()
 })
 </script>
@@ -550,6 +558,25 @@ onMounted(() => {
   padding: 24px;
   background: #f5f5f5;
   min-height: 100vh;
+  
+  .test-info {
+    background: #e1f3d8;
+    border: 1px solid #b3d8a4;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+    
+    h3 {
+      color: #67c23a;
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      color: #606266;
+      margin: 0;
+    }
+  }
   
   .page-header {
     display: flex;
