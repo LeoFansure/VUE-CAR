@@ -1,5 +1,66 @@
 <template>
   <div class="settings-container">
+    <!-- 页面标题和状态 -->
+    <div class="page-header">
+      <h2>系统配置</h2>
+      <div class="header-actions">
+        <el-button 
+          @click="loadConfig" 
+          :loading="loading"
+          size="small"
+        >
+          刷新配置
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 连接测试结果 -->
+    <div class="connection-status" v-if="Object.values(testResults).some(v => v !== null)">
+      <h3>连接状态</h3>
+      <el-row :gutter="20">
+        <el-col :span="6">
+          <el-card class="status-card">
+            <div class="status-item">
+              <span class="status-label">文件系统</span>
+              <el-tag :type="getConnectionStatusType(testResults.fs)" size="small">
+                {{ getConnectionStatusText(testResults.fs) }}
+              </el-tag>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
+            <div class="status-item">
+              <span class="status-label">数据库</span>
+              <el-tag :type="getConnectionStatusType(testResults.db)" size="small">
+                {{ getConnectionStatusText(testResults.db) }}
+              </el-tag>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
+            <div class="status-item">
+              <span class="status-label">AGV连接</span>
+              <el-tag :type="getConnectionStatusType(testResults.agv)" size="small">
+                {{ getConnectionStatusText(testResults.agv) }}
+              </el-tag>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
+            <div class="status-item">
+              <span class="status-label">摄像头</span>
+              <el-tag :type="getConnectionStatusType(testResults.cam)" size="small">
+                {{ getConnectionStatusText(testResults.cam) }}
+              </el-tag>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+
     <el-form
       ref="configFormRef"
       :model="configForm"
@@ -124,7 +185,7 @@ import {
   User, 
   Lock 
 } from '@element-plus/icons-vue'
-import { getConfig, updateConfig } from '@/api/system'
+import { getConfig, updateConfig, checkFs, checkDb, checkAgv, checkCam } from '@/api/system'
 
 // Props
 const props = defineProps({
@@ -141,6 +202,7 @@ const emit = defineEmits(['save'])
 const configFormRef = ref(null)
 const saving = ref(false)
 const testing = ref(false)
+const loading = ref(false)
 
 // 配置表单数据
 const configForm = reactive({
@@ -161,6 +223,14 @@ const configForm = reactive({
   password2: '',
   password3: '',
   password4: ''
+})
+
+// 连接测试结果
+const testResults = ref({
+  fs: null,
+  db: null,
+  agv: null,
+  cam: null
 })
 
 // 表单验证规则
@@ -186,19 +256,48 @@ const formRules = {
       message: '请输入正确的URL格式', 
       trigger: 'blur' 
     }
+  ],
+  cam1: [
+    { required: true, message: '请输入摄像头1地址', trigger: 'blur' }
+  ],
+  cam2: [
+    { required: true, message: '请输入摄像头2地址', trigger: 'blur' }
+  ],
+  cam3: [
+    { required: true, message: '请输入摄像头3地址', trigger: 'blur' }
+  ],
+  cam4: [
+    { required: true, message: '请输入摄像头4地址', trigger: 'blur' }
   ]
 }
 
 // 加载配置数据
 const loadConfig = async () => {
+  loading.value = true
   try {
+    console.log('开始加载系统配置...')
     const response = await getConfig()
-    if (response.data) {
-      Object.assign(configForm, response.data)
+    console.log('配置加载响应:', response)
+    
+    if (response.code === 200 && response.data) {
+      // 合并配置数据，保留默认值作为后备
+      const configData = response.data
+      Object.keys(configForm).forEach(key => {
+        if (configData[key] !== undefined && configData[key] !== null) {
+          configForm[key] = configData[key]
+        }
+      })
+      console.log('配置加载成功:', configForm)
+      ElMessage.success('配置加载成功')
+    } else {
+      console.warn('配置数据为空或格式不正确:', response)
+      ElMessage.warning('配置数据为空，使用默认配置')
     }
   } catch (error) {
     console.error('加载配置失败:', error)
-    ElMessage.warning('加载配置失败，使用默认配置')
+    ElMessage.error('加载配置失败：' + (error.message || '网络错误'))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -210,17 +309,24 @@ const saveConfig = async () => {
     await configFormRef.value.validate()
     
     saving.value = true
+    console.log('开始保存配置:', configForm)
     
-    await updateConfig(configForm)
+    const response = await updateConfig(configForm)
+    console.log('配置保存响应:', response)
     
-    ElMessage.success('配置保存成功')
-    
-    // 如果是嵌入模式，触发保存事件
-    if (props.isEmbedded) {
-      emit('save')
+    if (response.code === 200) {
+      ElMessage.success('配置保存成功')
+      
+      // 如果是嵌入模式，触发保存事件
+      if (props.isEmbedded) {
+        emit('save')
+      }
+    } else {
+      ElMessage.error(response.msg || '保存配置失败')
     }
     
   } catch (error) {
+    console.error('保存配置失败:', error)
     if (error.errors) {
       ElMessage.error('请检查表单填写是否正确')
     } else {
@@ -255,18 +361,64 @@ const resetForm = () => {
 // 测试连接
 const testConnection = async () => {
   testing.value = true
+  testResults.value = {
+    fs: null,
+    db: null,
+    agv: null,
+    cam: null
+  }
   
   try {
-    // 这里应该调用实际的连接测试接口
-    // 暂时模拟测试过程
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    console.log('开始测试系统连接...')
     
-    ElMessage.success('连接测试成功')
+    // 并行测试所有连接
+    const [fsRes, dbRes, agvRes, camRes] = await Promise.allSettled([
+      checkFs(),
+      checkDb(),
+      checkAgv(),
+      checkCam()
+    ])
+    
+    // 处理测试结果
+    testResults.value = {
+      fs: fsRes.status === 'fulfilled' && fsRes.value.code === 200,
+      db: dbRes.status === 'fulfilled' && dbRes.value.code === 200,
+      agv: agvRes.status === 'fulfilled' && agvRes.value.code === 200,
+      cam: camRes.status === 'fulfilled' && camRes.value.code === 200
+    }
+    
+    console.log('连接测试结果:', testResults.value)
+    
+    // 统计测试结果
+    const successCount = Object.values(testResults.value).filter(Boolean).length
+    const totalCount = Object.keys(testResults.value).length
+    
+    if (successCount === totalCount) {
+      ElMessage.success(`所有连接测试成功 (${successCount}/${totalCount})`)
+    } else if (successCount > 0) {
+      ElMessage.warning(`部分连接测试成功 (${successCount}/${totalCount})`)
+    } else {
+      ElMessage.error('所有连接测试失败')
+    }
+    
   } catch (error) {
+    console.error('连接测试失败:', error)
     ElMessage.error('连接测试失败：' + (error.message || '未知错误'))
   } finally {
     testing.value = false
   }
+}
+
+// 获取连接状态文本
+const getConnectionStatusText = (status) => {
+  if (status === null) return '未测试'
+  return status ? '连接正常' : '连接异常'
+}
+
+// 获取连接状态类型
+const getConnectionStatusType = (status) => {
+  if (status === null) return 'info'
+  return status ? 'success' : 'danger'
 }
 
 // 页面挂载时加载配置
@@ -276,12 +428,64 @@ onMounted(() => {
 
 // 暴露方法给父组件
 defineExpose({
-  saveConfig
+  saveConfig,
+  loadConfig,
+  testConnection
 })
 </script>
 
 <style lang="scss" scoped>
 .settings-container {
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ebeef5;
+    
+    h2 {
+      margin: 0;
+      color: #303133;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+  }
+  
+  .connection-status {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e4e7ed;
+    
+    h3 {
+      margin: 0 0 16px 0;
+      color: #303133;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .status-card {
+      .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .status-label {
+          font-size: 14px;
+          color: #606266;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
   .config-form {
     .config-section {
       margin-bottom: 40px;
@@ -379,6 +583,15 @@ defineExpose({
     &:last-child {
       padding-left: 10px;
     }
+  }
+}
+
+:deep(.el-card) {
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  .el-card__body {
+    padding: 16px;
   }
 }
 </style>
