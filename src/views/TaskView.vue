@@ -150,7 +150,7 @@
                 v-if="row.taskStatus === '待上传'"
                 type="primary" 
                 size="small"
-                @click="uploadTask(row.id)"
+                @click="uploadTask(row)"
               >
                 上传
               </el-button>
@@ -299,7 +299,7 @@ import {
   uploadTask as uploadTaskApi
 } from '@/api/task'
 import { formatDateTime, generateTaskCode } from '@/utils/common'
-import { useTaskStore } from '@/stores/task';
+import { useTaskStore } from '@/stores/tasks';
 
 const router = useRouter()
 const taskStore = useTaskStore();
@@ -498,57 +498,66 @@ const saveTask = async () => {
       taskStore.loadTaskList()
     }
     
-  } catch (error) {
-    if (error.errors) {
-      ElMessage.error('请检查表单填写是否正确')
-    } else {
-      // This catch block will now only handle validation errors or unexpected errors
-      // Specific add/edit errors are handled within addTask/editTask
-      console.error(error)
-    }
-  } finally {
     saving.value = false
+    
+  } catch (error) {
+    saving.value = false
+    // 表单验证失败的错误不需要弹窗提示
   }
 }
 
-// 关闭弹窗
-const handleCloseDialog = () => {
-  showTaskDialog.value = false
-  isEdit.value = false
-  
-  // 重置表单
-  if (taskFormRef.value) {
-    taskFormRef.value.resetFields()
-  }
-  
-  Object.keys(currentTask).forEach(key => {
-    currentTask[key] = key === 'id' ? null : ''
-  })
-}
-
-// 上传任务数据
-const uploadTask = async (taskId) => {
+// 上传任务
+const uploadTask = async (task) => {
   try {
-    const taskToUpload = taskStore.taskList.find(task => task.id === taskId);
+    const taskToUpload = taskStore.taskList.find(t => t.id === task.id);
     if (!taskToUpload) {
       ElMessage.error('任务不存在');
       return;
     }
+
+    await ElMessageBox.confirm(
+      `确定要上传任务 "${taskToUpload.taskName}" 的数据吗？`,
+      '确认上传',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    );
     
-    ElMessage.info(`开始上传任务 [${taskToUpload.taskName}] 的数据`);
-    
-    // 直接调用 API
-    await uploadTaskApi(taskId); 
+    await uploadTaskApi(task.id); 
     ElMessage.success('任务数据上传成功');
     taskStore.loadTaskList(); // 保持状态管理方式不变
   } catch (error) {
-    ElMessage.error('任务数据上传失败');
-    console.error(error);
+    if (error !== 'cancel') {
+      ElMessage.error('任务数据上传失败');
+      console.error('上传失败:', error);
+    }
   }
-};
+}
+
+const handleCloseDialog = () => {
+  showTaskDialog.value = false
+  if (taskFormRef.value) {
+    taskFormRef.value.resetFields()
+  }
+  // 重置 currentTask
+  Object.assign(currentTask, {
+    id: null,
+    taskCode: '',
+    taskName: '',
+    startPos: '',
+    taskTrip: '',
+    creator: '',
+    executor: '',
+    remark: ''
+  })
+  isEdit.value = false
+}
 
 // 打开新增任务弹窗
 const openAddTaskDialog = () => {
+  handleCloseDialog()
   isEdit.value = false
   showTaskDialog.value = true
 }
