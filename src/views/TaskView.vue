@@ -159,6 +159,27 @@ const goToSettings = () => {
   router.push('/settingsView')
 }
 
+// 处理任务编号点击
+const handleTaskCodeClick = (row) => {
+  switch (row.taskStatus) {
+    case '待巡视':
+      // 打开编辑对话框，并显示启动按钮
+      handleEditTask(row, true)
+      break
+    case '巡视中':
+      // 跳转到任务执行页面
+      goToTaskExecute(row)
+      break
+    case '待上传':
+    case '已完成':
+      // 跳转到任务详情页面
+      goToTaskDetail(row)
+      break
+    default:
+      goToTaskDetail(row)
+  }
+}
+
 // 前往任务详情页面
 const goToTaskDetail = (row) => {
   router.push({
@@ -180,17 +201,17 @@ const handleAddTask = () => {
   resetTaskForm()
   isEdit.value = false
   showTaskDialog.value = true
-  showStartAlert.value = true
-  showStartBtn.value = true
+  showStartAlert.value = false
+  showStartBtn.value = false
 }
 
 // 处理编辑任务
-const handleEditTask = (row) => {
+const handleEditTask = (row, showStartButton = false) => {
   resetTaskForm()
   isEdit.value = true
   showTaskDialog.value = true
-  showStartAlert.value = false
-  showStartBtn.value = false
+  showStartAlert.value = showStartButton
+  showStartBtn.value = showStartButton
   
   // 填充表单数据
   Object.keys(taskForm).forEach(key => {
@@ -199,6 +220,7 @@ const handleEditTask = (row) => {
     }
   })
   taskForm.id = row.id
+  currentTaskId.value = row.id
 }
 
 // 处理删除任务
@@ -466,7 +488,7 @@ onMounted(() => {
         <el-table-column type="index" label="序号" width="55" align="center"></el-table-column>
         <el-table-column prop="taskCode" label="任务编号" min-width="150">
           <template #default="{ row }">
-            <el-link type="primary" @click="goToTaskDetail(row)">{{ row.taskCode }}</el-link>
+            <el-link type="primary" @click="handleTaskCodeClick(row)">{{ row.taskCode }}</el-link>
           </template>
         </el-table-column>
         <el-table-column prop="taskName" label="任务名称" width="150"></el-table-column>
@@ -511,6 +533,7 @@ onMounted(() => {
               <!-- 待上传状态 -->
               <template v-else-if="row.taskStatus === '待上传'">
                 <el-button type="success" size="small" @click="handleUploadTask(row)">上传</el-button>
+                <el-button type="info" size="small" plain @click="goToTaskDetail(row)">查看</el-button>
               </template>
               
               <!-- 已完成状态 -->
