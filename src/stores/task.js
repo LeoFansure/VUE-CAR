@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
-import taskService from '@/services/TaskService'
+import { listTask } from '@/api/task'
 
 export const useTaskStore = defineStore('task', () => {
   // 任务列表
@@ -34,13 +34,17 @@ export const useTaskStore = defineStore('task', () => {
         pageSize: pagination.pageSize
       }
       
-      const result = await taskService.getTaskList(params)
+      const response = await listTask(params)
       
-      if (result.success) {
-        taskList.value = result.data.list || result.data.rows || []
-        pagination.total = result.data.total || 0
+      // The API response is now directly from axios, so the data is in response.data
+      // Based on TaskService, the backend might return data in different structures.
+      const resultData = response.data || {}
+      
+      if (response.code === 200) {
+        taskList.value = resultData.rows || resultData.list || (Array.isArray(resultData) ? resultData : []) || []
+        pagination.total = resultData.total || 0
       } else {
-        console.error('加载任务列表失败:', result.message)
+        console.error('加载任务列表失败:', response.msg)
         taskList.value = []
         pagination.total = 0
       }
