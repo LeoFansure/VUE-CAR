@@ -103,3 +103,11 @@ export function getAGVStatus(taskId) {
     method: 'get'
   })
 }
+
+// 获取故障列表
+export function getFlawList(taskId) {
+  return request({
+    url: `/agv/flaw/list/${taskId}`,
+    method: 'get'
+  })
+} 
