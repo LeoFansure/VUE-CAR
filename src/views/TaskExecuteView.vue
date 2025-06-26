@@ -163,7 +163,7 @@ const endTaskExecution = async () => {
   router.push('/taskView')
 }
 const abortTaskExecution = async () => {
-  await endTask(taskId, true)
+  await endTask(taskId, false)
   ElMessage.success('任务已终止')
   router.push('/taskView')
 }

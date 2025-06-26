@@ -55,7 +55,7 @@ export function startTask(id) {
 }
 
 // 结束任务
-export function endTask(id, isAbort = false) {
+export function endTask(id, isAbort = true) {
   return request({
     url: `/agv/task/end/${id}?isAbort=${isAbort}`,
     method: 'post'
@@ -103,3 +103,11 @@ export function getAGVStatus(taskId) {
     method: 'get'
   })
 }
+
+// 获取故障列表
+export function getFlawList(taskId) {
+  return request({
+    url: `/agv/flaw/list/${taskId}`,
+    method: 'get'
+  })
+} 

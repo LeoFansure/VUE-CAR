@@ -159,6 +159,27 @@ const goToSettings = () => {
   router.push('/settingsView')
 }
 
+// 处理任务编号点击
+const handleTaskCodeClick = (row) => {
+  switch (row.taskStatus) {
+    case '待巡视':
+      // 打开编辑对话框，并显示启动按钮
+      handleEditTask(row, true)
+      break
+    case '巡视中':
+      // 跳转到任务执行页面
+      goToTaskExecute(row)
+      break
+    case '待上传':
+    case '已完成':
+      // 跳转到任务详情页面
+      goToTaskDetail(row)
+      break
+    default:
+      goToTaskDetail(row)
+  }
+}
+
 // 前往任务详情页面
 const goToTaskDetail = (row) => {
   router.push({
@@ -175,22 +196,37 @@ const goToTaskExecute = (row) => {
   })
 }
 
+// 生成任务编号
+const generateTaskCode = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  return `TASK-${year}${month}${day}${hours}${minutes}${seconds}`
+}
+
 // 处理新增任务
 const handleAddTask = () => {
   resetTaskForm()
   isEdit.value = false
   showTaskDialog.value = true
-  showStartAlert.value = true
-  showStartBtn.value = true
+  showStartAlert.value = false
+  showStartBtn.value = false
+  // 自动生成任务编号
+  taskForm.taskCode = generateTaskCode()
 }
 
 // 处理编辑任务
-const handleEditTask = (row) => {
+const handleEditTask = (row, showStartButton = false) => {
   resetTaskForm()
   isEdit.value = true
   showTaskDialog.value = true
-  showStartAlert.value = false
-  showStartBtn.value = false
+  showStartAlert.value = showStartButton
+  showStartBtn.value = showStartButton
   
   // 填充表单数据
   Object.keys(taskForm).forEach(key => {
@@ -199,6 +235,7 @@ const handleEditTask = (row) => {
     }
   })
   taskForm.id = row.id
+  currentTaskId.value = row.id
 }
 
 // 处理删除任务
@@ -323,6 +360,7 @@ const confirmUpload = async () => {
     uploadLoading.value = true
     const res = await uploadTask(currentTaskId.value)
     if (res.code === 200) {
+      console.log("我已上传")
       ElMessage.success('任务数据上传成功')
       showUploadDialog.value = false
       loadTaskList() // 刷新列表
@@ -434,7 +472,7 @@ onMounted(() => {
           <el-input v-model="searchForm.executor" placeholder="请输入执行人" clearable></el-input>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.taskStatus" placeholder="请选择" clearable>
+          <el-select v-model="searchForm.taskStatus" placeholder="请选择" clearable style="width: 120px">
             <el-option label="待巡视" value="待巡视"></el-option>
             <el-option label="巡视中" value="巡视中"></el-option>
             <el-option label="待上传" value="待上传"></el-option>
@@ -466,7 +504,7 @@ onMounted(() => {
         <el-table-column type="index" label="序号" width="55" align="center"></el-table-column>
         <el-table-column prop="taskCode" label="任务编号" min-width="150">
           <template #default="{ row }">
-            <el-link type="primary" @click="goToTaskDetail(row)">{{ row.taskCode }}</el-link>
+            <el-link type="primary" @click="handleTaskCodeClick(row)">{{ row.taskCode }}</el-link>
           </template>
         </el-table-column>
         <el-table-column prop="taskName" label="任务名称" width="150"></el-table-column>
@@ -511,6 +549,7 @@ onMounted(() => {
               <!-- 待上传状态 -->
               <template v-else-if="row.taskStatus === '待上传'">
                 <el-button type="success" size="small" @click="handleUploadTask(row)">上传</el-button>
+                <el-button type="info" size="small" plain @click="goToTaskDetail(row)">查看</el-button>
               </template>
               
               <!-- 已完成状态 -->
@@ -558,7 +597,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="任务编号" prop="taskCode">
-              <el-input v-model="taskForm.taskCode" placeholder="请输入任务编号" maxlength="50"></el-input>
+              <el-input v-model="taskForm.taskCode" placeholder="系统自动生成" maxlength="50" :readonly="!isEdit"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
