@@ -44,6 +44,7 @@ const videoRef = ref(null)
 const isVideoPlaying = ref(false)
 const videoStream = ref(null)
 const videoContainerId = 'video-container'
+const audioContainerId = 'audio-container'
 
 // 加载状态
 const loading = ref({
@@ -186,7 +187,7 @@ const controlAgv = async (action) => {
     }
     
     if (response.code === 200) {
-  ElMessage.success(`${action === 'forward' ? '前进' : action === 'stop' ? '停止' : '后退'}指令发送成功`)
+      ElMessage.success(`${action === 'forward' ? '前进' : action === 'stop' ? '停止' : '后退'}指令发送成功`)
     } else {
       ElMessage.error(response.msg || '控制失败')
     }
@@ -199,8 +200,17 @@ const controlAgv = async (action) => {
 // 切换摄像头
 const switchCamera = async (cameraId) => {
   try {
-  currentCamera.value = cameraId
+    currentCamera.value = cameraId
     console.log(`切换到摄像头 ${cameraId}`)
+    
+    // 确保DOM元素存在
+    const videoElement = document.getElementById(videoContainerId)
+    if (!videoElement) {
+      console.warn('视频容器元素不存在，等待DOM渲染')
+      // 延迟执行，等待DOM渲染完成
+      setTimeout(() => switchCamera(cameraId), 500)
+      return
+    }
     
     if (isVideoPlaying.value) {
       // 如果视频正在播放，则切换流
@@ -212,28 +222,38 @@ const switchCamera = async (cameraId) => {
     }
   } catch (error) {
     console.error('切换摄像头失败:', error)
-    ElMessage.error('切换摄像头失败')
+    ElMessage.error('切换摄像头失败: ' + error.message)
   }
 }
 
 // 切换音频
 const toggleAudio = async () => {
   try {
-  audioEnabled.value = !audioEnabled.value
+    audioEnabled.value = !audioEnabled.value
     console.log(audioEnabled.value ? '开启音频' : '关闭音频')
     
     if (audioEnabled.value) {
+      // 确保音频容器存在
+      const audioElement = document.getElementById(audioContainerId)
+      if (!audioElement) {
+        console.warn('音频容器元素不存在')
+        audioEnabled.value = false
+        ElMessage.error('音频容器初始化失败')
+        return
+      }
+      
       // 启动音频流 (通道5)
-      await playVideoStream('audio-container', 5)
+      await playVideoStream(audioContainerId, 5)
       ElMessage.success('音频已开启')
     } else {
       // 停止音频流
-      stopWebRTCStream('audio-container')
+      stopWebRTCStream(audioContainerId)
       ElMessage.info('音频已关闭')
     }
   } catch (error) {
     console.error('音频控制失败:', error)
-    ElMessage.error('音频控制失败')
+    audioEnabled.value = false
+    ElMessage.error('音频控制失败: ' + error.message)
   }
 }
 
@@ -241,12 +261,23 @@ const toggleAudio = async () => {
 const startVideoStream = async (cameraId) => {
   try {
     console.log(`启动摄像头 ${cameraId} 视频流`)
+    
+    // 确保DOM元素存在
+    const videoElement = document.getElementById(videoContainerId)
+    if (!videoElement) {
+      throw new Error('视频容器元素不存在，请确保页面已正确渲染')
+    }
+    
+    // 清空容器内容
+    videoElement.innerHTML = ''
+    
+    // 启动视频流
     await playVideoStream(videoContainerId, cameraId)
-  isVideoPlaying.value = true
-  ElMessage.success(`摄像头 ${cameraId} 视频流已启动`)
+    isVideoPlaying.value = true
+    ElMessage.success(`摄像头 ${cameraId} 视频流已启动`)
   } catch (error) {
     console.error('启动视频流失败:', error)
-    ElMessage.error('启动视频流失败')
+    ElMessage.error('启动视频流失败: ' + error.message)
     isVideoPlaying.value = false
   }
 }
@@ -256,11 +287,11 @@ const stopVideoStream = () => {
   try {
     console.log('停止视频流')
     stopWebRTCStream(videoContainerId)
-  isVideoPlaying.value = false
-  ElMessage.info('视频流已停止')
+    isVideoPlaying.value = false
+    ElMessage.info('视频流已停止')
   } catch (error) {
     console.error('停止视频流失败:', error)
-    ElMessage.error('停止视频流失败')
+    ElMessage.error('停止视频流失败: ' + error.message)
   }
 }
 
@@ -374,17 +405,70 @@ const goToPage = (page) => {
   router.push(`/${page}`)
 }
 
-// 模拟数据
+// 视频调试函数
+const debugVideo = () => {
+  console.log('=== 视频调试信息 ===')
+  console.log('当前摄像头:', currentCamera.value)
+  console.log('视频播放状态:', isVideoPlaying.value)
+  console.log('音频开启状态:', audioEnabled.value)
+  
+  // 检查DOM元素
+  const videoElement = document.getElementById(videoContainerId)
+  const audioElement = document.getElementById(audioContainerId)
+  
+  console.log('视频容器元素:', videoElement)
+  console.log('音频容器元素:', audioElement)
+  
+  if (videoElement) {
+    console.log('视频容器innerHTML:', videoElement.innerHTML)
+    console.log('视频容器children:', videoElement.children)
+  }
+  
+  // 检查WebRTC库
+  console.log('ZLMRTCClient可用性:', typeof ZLMRTCClient !== 'undefined')
+  
+  // 检查网络连接
+  console.log('网络状态:', navigator.onLine ? '在线' : '离线')
+  
+  // 尝试ping流媒体服务器
+  fetch('http://192.168.2.57/webrtc-api', { mode: 'no-cors' })
+    .then(() => console.log('流媒体服务器可达'))
+    .catch(error => console.log('流媒体服务器连接失败:', error))
+    
+  ElMessage.info('调试信息已打印到控制台，请查看')
+}
+
+// 组件挂载时的初始化
 onMounted(() => {
   console.log('GlobalControlView 组件已挂载')
   
   // 初始化时获取所有数据
   refreshAllData()
   
-  // 初始化视频流（延迟启动，确保DOM已渲染）
+  // 检查必要的DOM元素是否存在
   setTimeout(() => {
-    console.log('初始化视频流')
-    // 默认不自动启动视频流，等待用户手动启动
+    console.log('检查视频容器DOM元素')
+    const videoElement = document.getElementById(videoContainerId)
+    const audioElement = document.getElementById(audioContainerId)
+    
+    if (videoElement) {
+      console.log('视频容器元素已就绪:', videoElement)
+    } else {
+      console.error('视频容器元素未找到:', videoContainerId)
+    }
+    
+    if (audioElement) {
+      console.log('音频容器元素已就绪:', audioElement)
+    } else {
+      console.error('音频容器元素未找到:', audioContainerId)
+    }
+    
+    // 检查ZLMRTCClient是否加载
+    if (typeof ZLMRTCClient !== 'undefined') {
+      console.log('ZLMRTCClient库已加载')
+    } else {
+      console.error('ZLMRTCClient库未加载')
+    }
   }, 1000)
   
   // 设置定时刷新（每30秒刷新一次数据）
@@ -410,8 +494,17 @@ onUnmounted(() => {
     if (isVideoPlaying.value) {
       stopWebRTCStream(videoContainerId)
     }
+    
     // 停止音频流
-    stopWebRTCStream('audio-container')
+    if (audioEnabled.value) {
+      stopWebRTCStream(audioContainerId)
+    }
+    
+    // 重置状态
+    isVideoPlaying.value = false
+    audioEnabled.value = false
+    
+    console.log('资源清理完成')
   } catch (error) {
     console.error('清理资源失败:', error)
   }
@@ -591,7 +684,7 @@ onUnmounted(() => {
             <div class="video-container">
               <div class="video-display" ref="videoRef">
                 <!-- 视频容器 -->
-                <div :id="videoContainerId" class="video-element"></div>
+                <div id="video-container" class="video-element"></div>
                 
                 <!-- 音频容器 (隐藏) -->
                 <div id="audio-container" class="audio-element"></div>
@@ -627,6 +720,9 @@ onUnmounted(() => {
                 </el-button>
                 <el-button @click="takeScreenshot">
                   截图
+                </el-button>
+                <el-button type="info" @click="debugVideo">
+                  调试
                 </el-button>
               </div>
             </div>

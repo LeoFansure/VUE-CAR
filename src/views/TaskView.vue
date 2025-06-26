@@ -196,6 +196,19 @@ const goToTaskExecute = (row) => {
   })
 }
 
+// 生成任务编号
+const generateTaskCode = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  return `TASK-${year}${month}${day}${hours}${minutes}${seconds}`
+}
+
 // 处理新增任务
 const handleAddTask = () => {
   resetTaskForm()
@@ -203,6 +216,8 @@ const handleAddTask = () => {
   showTaskDialog.value = true
   showStartAlert.value = false
   showStartBtn.value = false
+  // 自动生成任务编号
+  taskForm.taskCode = generateTaskCode()
 }
 
 // 处理编辑任务
@@ -345,6 +360,7 @@ const confirmUpload = async () => {
     uploadLoading.value = true
     const res = await uploadTask(currentTaskId.value)
     if (res.code === 200) {
+      console.log("我已上传")
       ElMessage.success('任务数据上传成功')
       showUploadDialog.value = false
       loadTaskList() // 刷新列表
@@ -456,7 +472,7 @@ onMounted(() => {
           <el-input v-model="searchForm.executor" placeholder="请输入执行人" clearable></el-input>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.taskStatus" placeholder="请选择" clearable>
+          <el-select v-model="searchForm.taskStatus" placeholder="请选择" clearable style="width: 120px">
             <el-option label="待巡视" value="待巡视"></el-option>
             <el-option label="巡视中" value="巡视中"></el-option>
             <el-option label="待上传" value="待上传"></el-option>
@@ -581,7 +597,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="任务编号" prop="taskCode">
-              <el-input v-model="taskForm.taskCode" placeholder="请输入任务编号" maxlength="50"></el-input>
+              <el-input v-model="taskForm.taskCode" placeholder="系统自动生成" maxlength="50" :readonly="!isEdit"></el-input>
             </el-form-item>
           </el-col>
         </el-row>

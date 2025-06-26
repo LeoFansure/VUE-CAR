@@ -1,12 +1,11 @@
-import './ZLMRTCClient.js'
-
 /**
  * WebRTC视频流管理类
+ * 注意：ZLMRTCClient.js已在index.html中作为全局脚本加载
  */
 export class WebRTCManager {
   constructor() {
     this.players = new Map() // 存储播放器实例
-    this.baseUrl = 'http://192.168.2.57/webrtc-api'
+    this.baseUrl = 'http://192.168.2.57'
   }
 
   /**
@@ -18,29 +17,66 @@ export class WebRTCManager {
   async createPlayer(elementId, streamId) {
     return new Promise((resolve, reject) => {
       try {
-        const player = new ZLMRTCClient.Peer({
-          element: document.getElementById(elementId),
-          debug: false
+        // 检查ZLMRTCClient是否可用
+        if (typeof ZLMRTCClient === 'undefined') {
+          reject(new Error('ZLMRTCClient is not available'))
+          return
+        }
+
+        // 检查元素是否存在
+        const element = document.getElementById(elementId)
+        if (!element) {
+          reject(new Error(`Element with id '${elementId}' not found`))
+          return
+        }
+
+        console.log(`Creating WebRTC player for element: ${elementId}, stream: ${streamId}`)
+
+        // 构建WebRTC信令URL
+        const zlmsdpUrl = `${this.baseUrl}/webrtc-api/live/PbOUmNpZKCDFt_01.flv`
+        console.log(`WebRTC SDP URL: ${zlmsdpUrl}`)
+
+        // 创建播放器实例
+        const player = new ZLMRTCClient.Endpoint({
+          element: element,          // 视频显示元素
+          debug: true,              // 开启调试模式
+          zlmsdpUrl: zlmsdpUrl,     // WebRTC信令交换URL
+          recvOnly: true,           // 只接收流，不发送
+          videoEnable: streamId <= 4, // 通道1-4为视频
+          audioEnable: streamId === 5, // 通道5为音频
+          useCamera: false          // 不使用本地摄像头
         })
 
-        // 构建流地址
-        const streamUrl = `${this.baseUrl}/index/api/webrtc?app=live&stream=${streamId}&type=play`
-        
-        player.on('track', (track, stream) => {
-          console.log(`Track received for stream ${streamId}:`, track.kind)
-        })
-
-        player.on('error', (error) => {
-          console.error(`Player error for stream ${streamId}:`, error)
-          reject(error)
-        })
-
-        player.start(streamUrl).then(() => {
-          this.players.set(elementId, player)
+        // 监听事件
+        player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS, (event) => {
+          console.log(`Remote stream received for stream ${streamId}:`, event)
           resolve(player)
-        }).catch(reject)
+        })
+
+        player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED, (error) => {
+          console.error(`WebRTC offer/answer exchange failed for stream ${streamId}:`, error)
+          reject(new Error(`WebRTC signaling failed: ${error.msg || 'Unknown error'}`))
+        })
+
+        player.on(ZLMRTCClient.Events.WEBRTC_ON_CONNECTION_STATE_CHANGE, (state) => {
+          console.log(`Connection state changed for stream ${streamId}: ${state}`)
+          if (state === 'failed' || state === 'disconnected') {
+            reject(new Error(`WebRTC connection failed: ${state}`))
+          }
+        })
+
+        player.on(ZLMRTCClient.Events.WEBRTC_ICE_CANDIDATE_ERROR, (error) => {
+          console.error(`ICE candidate error for stream ${streamId}:`, error)
+        })
+
+        // 存储播放器实例
+        this.players.set(elementId, player)
+        
+        // 播放器会在构造函数中自动开始连接（因为recvOnly: true）
+        console.log(`Player created and starting for stream ${streamId}`)
 
       } catch (error) {
+        console.error(`Error creating player:`, error)
         reject(error)
       }
     })
