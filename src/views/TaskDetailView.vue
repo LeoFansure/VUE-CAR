@@ -88,7 +88,7 @@
           >
             <el-table-column label="故障名称" min-width="120">
               <template #default="{ row }">
-                <div class="flaw-name">
+                <div class="flaw-name" style="cursor:pointer;color:#409EFF" @click.stop="openFlawDialog(row)">
                   {{ row.flawName }}
                 </div>
               </template>
@@ -101,17 +101,6 @@
             <el-table-column label="故障位置" width="100">
               <template #default="{ row }">
                 {{ row.flawDistance }}m
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100" align="center">
-              <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click.stop="openFlawDialog(row)"
-                >
-                  详情
-                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -129,7 +118,8 @@
           class="flaw-marker"
           :class="getFlawMarkerClass(flaw)"
           :style="{ left: calculateFlawPosition(flaw) }"
-          @click="selectFlaw(flaw)"
+          @click="onFlawMarkerClick(flaw)"
+          @dblclick="onFlawMarkerDblClick(flaw)"
         >
           <el-tooltip 
             :content="flaw.flawName + ' - ' + flaw.flawDistance + 'm'" 
@@ -180,9 +170,8 @@
             <span class="info-label">故障状态:</span>
             <span class="info-value">
               <el-select v-model="currentFlaw.status" style="width: 120px">
-                <el-option label="已确认故障" value="confirmed" />
+                <el-option label="故障属实" value="confirmed" />
                 <el-option label="疑似故障" value="suspected" />
-                <el-option label="误报" value="false_alarm" />
               </el-select>
             </span>
           </div>
@@ -249,6 +238,13 @@
         <el-table-column label="距离" width="100">
           <template #default="{ row }">
             {{ row.taskTrip }}m
+          </template>
+        </el-table-column>
+        <el-table-column label="任务状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.taskStatus === '已完成' ? 'success' : (row.taskStatus === '待上传' ? 'warning' : 'info')">
+              {{ row.taskStatus }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
@@ -322,12 +318,14 @@ const calculateFlawPosition = (flaw) => {
 
 // 获取故障标记的样式类
 const getFlawMarkerClass = (flaw) => {
-  if (flaw.status === 'confirmed') {
-    return 'confirmed'
-  } else if (flaw.status === 'suspected') {
-    return 'suspected'
-  } else {
-    return 'false-alarm'
+  if (flaw.status) {
+    if (flaw.status === 'confirmed') {
+      return 'confirmed'
+    } else if (flaw.status === 'suspected') {
+      return 'suspected'
+    }
+  } else if (typeof flaw.confirmed === 'boolean') {
+    return flaw.confirmed ? 'confirmed' : 'suspected'
   }
 }
 
@@ -351,40 +349,47 @@ const selectFlaw = (flaw) => {
 
 // 打开故障详情弹窗
 const openFlawDialog = (flaw) => {
-  currentFlaw.value = { ...JSON.parse(JSON.stringify(flaw)), flawImageUrl: getFlawImageUrl(flaw) }
+  let status = flaw.status
+  if (!status) {
+    status = flaw.confirmed === true ? 'confirmed' : 'suspected'
+  }
+  currentFlaw.value = {
+    id: flaw.id,
+    flawType: flaw.flawType,
+    flawName: flaw.flawName,
+    flawDesc: flaw.flawDesc,
+    remark: flaw.remark,
+    status,
+    flawImageUrl: getFlawImageUrl(flaw)
+  }
   showFlawDialog.value = true
 }
 
 // 保存故障信息
 const saveFlawInfo = async () => {
   if (!currentFlaw.value) return
-  
   try {
     saving.value = true
-    
     const flawData = {
       id: currentFlaw.value.id,
-      status: currentFlaw.value.status,
+      flawType: currentFlaw.value.flawType,
+      flawName: currentFlaw.value.flawName,
       flawDesc: currentFlaw.value.flawDesc,
+      confirmed: currentFlaw.value.status === 'confirmed',
       remark: currentFlaw.value.remark
     }
-    
     await updateFlaw(flawData)
-    
     // 更新本地数据
     const index = flawList.value.findIndex(item => item.id === currentFlaw.value.id)
     if (index !== -1) {
-      flawList.value[index] = { 
-        ...flawList.value[index], 
-        status: currentFlaw.value.status,
-        flawDesc: currentFlaw.value.flawDesc,
-        remark: currentFlaw.value.remark
+      flawList.value[index] = {
+        ...flawList.value[index],
+        ...flawData,
+        status: currentFlaw.value.status
       }
     }
-    
     ElMessage.success('故障信息更新成功')
     showFlawDialog.value = false
-    
   } catch (error) {
     ElMessage.error('故障信息更新失败')
     console.error(error)
@@ -410,7 +415,6 @@ const goBack = () => {
 const handleCloseDialog = () => {
   if (saving.value) return
   showFlawDialog.value = false
-  currentFlaw.value = null
 }
 
 // 加载任务列表
@@ -432,6 +436,10 @@ const loadTaskList = async () => {
 // 选择任务
 const chooseTask = (task) => {
   if (!task || !task.id) return
+  if (task.taskStatus === '待巡视' || task.taskStatus === '巡视中') {
+    ElMessage.warning('该任务未完成，不能选择')
+    return
+  }
   showTaskListDialog.value = false
   router.push({ name: 'taskDetailView', query: { id: task.id } })
 }
@@ -497,6 +505,19 @@ watch(
 onMounted(() => {
   loadTaskDetail()
 })
+
+let clickTimer = null
+const onFlawMarkerClick = (flaw) => {
+  if (clickTimer) clearTimeout(clickTimer)
+  clickTimer = setTimeout(() => {
+    selectFlaw(flaw)
+    clickTimer = null
+  }, 250)
+}
+const onFlawMarkerDblClick = (flaw) => {
+  if (clickTimer) clearTimeout(clickTimer)
+  openFlawDialog(flaw)
+}
 </script>
 
 <style lang="scss" scoped>
