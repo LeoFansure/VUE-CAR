@@ -54,6 +54,9 @@ const loading = ref({
   flaw: false
 })
 
+const localVideoRef = ref(null)
+const isLocalVideoPaused = ref(false)
+
 // 获取任务状态类型
 const getTaskStatusType = (status) => {
   const statusMap = {
@@ -438,6 +441,42 @@ const debugVideo = () => {
   ElMessage.info('调试信息已打印到控制台，请查看')
 }
 
+// 本地摄像头测试
+const testLocalCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    const videoElement = document.getElementById(videoContainerId);
+    if (videoElement) {
+      videoElement.innerHTML = '';
+      const localVideo = document.createElement('video');
+      localVideo.autoplay = true;
+      localVideo.muted = true;
+      localVideo.playsInline = true;
+      localVideo.style.width = '100%';
+      localVideo.style.height = '100%';
+      localVideo.srcObject = stream;
+      videoElement.appendChild(localVideo);
+      localVideoRef.value = localVideo;
+      isLocalVideoPaused.value = false;
+    }
+    ElMessage.success('本地摄像头已开启');
+  } catch (err) {
+    ElMessage.error('无法获取本地摄像头: ' + err.message);
+  }
+};
+
+const togglePauseLocalVideo = () => {
+  if (localVideoRef.value) {
+    if (localVideoRef.value.paused) {
+      localVideoRef.value.play();
+      isLocalVideoPaused.value = false;
+    } else {
+      localVideoRef.value.pause();
+      isLocalVideoPaused.value = true;
+    }
+  }
+};
+
 // 组件挂载时的初始化
 onMounted(() => {
   console.log('GlobalControlView 组件已挂载')
@@ -690,14 +729,14 @@ onUnmounted(() => {
                 <div id="audio-container" class="audio-element"></div>
                 
                 <!-- 视频占位符 -->
-                <div v-if="!isVideoPlaying" class="video-placeholder">
+                <div v-if="!isVideoPlaying && !localVideoRef" class="video-placeholder">
                   <el-icon :size="48"><VideoCamera /></el-icon>
                   <p>摄像头 {{ currentCamera }} 视频流</p>
                   <p class="video-status">视频状态: {{ isVideoPlaying ? '播放中' : '已停止' }}</p>
                 </div>
                 
                 <!-- 视频覆盖层 -->
-                <div v-if="isVideoPlaying" class="video-overlay">
+                <div v-if="isVideoPlaying && !localVideoRef" class="video-overlay">
                     <div class="camera-info">
                       <el-tag type="primary">摄像头 {{ currentCamera }}</el-tag>
                       <el-tag :type="audioEnabled ? 'success' : 'info'">
@@ -723,6 +762,12 @@ onUnmounted(() => {
                 </el-button>
                 <el-button type="info" @click="debugVideo">
                   调试
+                </el-button>
+                <el-button type="primary" @click="testLocalCamera">
+                  本地摄像头测试
+                </el-button>
+                <el-button type="warning" @click="togglePauseLocalVideo" v-if="localVideoRef">
+                  {{ isLocalVideoPaused ? '恢复' : '暂停' }}
                 </el-button>
               </div>
             </div>
