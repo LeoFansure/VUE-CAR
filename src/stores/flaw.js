@@ -32,6 +32,8 @@ export const useFlawStore = defineStore('flaw', () => {
     form.remark = data.remark || ''
   }
 
+  // 新增: 为 saving 状态添加一个 setter
+  const setSaving = (val) => { saving.value = val }
  
   const resetForm = () => {
     form.confirmed = false

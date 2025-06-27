@@ -99,18 +99,22 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-header">故障历史</div>
-          <div class="card-body">
-            <el-table :data="flaws" style="width: 100%" size="small" max-height="250">
-              <el-table-column prop="flawName" label="故障名称" />
-              <el-table-column prop="flawType" label="故障类型" />
-              <el-table-column prop="flawDistance" label="故障位置(m)" />
-            </el-table>
-          </div>
-        </div>
+  <div class="card-header">故障历史</div>
+  <div class="card-body">
+    <el-table 
+      :data="flaws" 
+      style="width: 100%" 
+      size="small" 
+      max-height="250"
+      @row-click="showFlawDetail"> <el-table-column prop="flawName" label="故障名称" />
+      <el-table-column prop="flawType" label="故障类型" />
+      <el-table-column prop="flawDistance" label="故障位置(m)" />
+    </el-table>
+  </div>
+</div>
       </div>
     </div>
-    <FlawDetailDialog v-model="flawStore.visible" :flaw="flawStore.flaw || {}" @saved="updateFlawList" />
+    <FlawDetailDialog @saved="updateFlawList" />
   </div>
 </template>
 
@@ -257,28 +261,42 @@ const loadTaskInfo = async () => {
   }
 }
 
-// 修改: 此函数作为保证最终一致性的“全量”更新，降低频率
+
+
 const updateFlawList = async () => {
-  if (!taskId) return
-  const res = await listFlaw({ taskId, pageNum: 1, pageSize: 999 })
-  if (res?.code === 200) {
-    flaws.value = res.rows || []
-  }
+  
+    if (response.code === 200) {
+      // 后端分页结构返回 rows，否则可能直接返回 data
+      const allFlaws = response.rows || response.data || []
+      flawList.value = allFlaws.filter(flaw => flaw.taskId == taskId)
+    }
+  
 }
 
 // 新增: 高频轮询实时“新增”的故障，用于主动弹窗
 const pollForNewFlaws = async () => {
   if (!taskId) return
-  const res = await liveInfo(taskId)
-  if (res?.code === 200 && res.data && res.data.length > 0) {
-    res.data.forEach(newFlaw => {
-      // 检查内存中是否已存在此故障，防止重复添加和弹窗
-      if (!flaws.value.some(existingFlaw => existingFlaw.id === newFlaw.id)) {
-        flaws.value.push(newFlaw) // 将新故障添加到列表中
-        showFlawDetail(newFlaw)   // 主动弹出详情窗口
-        ElMessage.warning(`检测到新的疑似故障：${newFlaw.flawName}`)
-      }
-    })
+  try {
+    const res = await liveInfo(taskId)
+    if (res?.code === 200 && res.data && Array.isArray(res.data)) {
+      res.data.forEach(async newFlaw => { // <--- 将 forEach 改为异步
+        const isExisting = flaws.value.some(f => f.id === newFlaw.id)
+        if (!isExisting && newFlaw.shown === false) {
+          flaws.value.push(newFlaw)
+          showFlawDetail(newFlaw)
+          ElMessage.warning(`检测到新的疑似故障：${newFlaw.flawName}`)
+
+          // 新增：立即调用 updateFlaw API，将shown 状态更新为 true
+          try {
+            await updateFlaw({ id: newFlaw.id, shown: true })
+          } catch (updateError) {
+            console.error(`Failed to mark flaw ${newFlaw.id} as shown:`, updateError)
+          }
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Polling for new flaws failed:', error);
   }
 }
 
@@ -295,7 +313,7 @@ const updateAGVStatus = async () => {
 const loadCameraList = async () => {
   try {
     const res = await deviceList()
-    const cameraData = res.data?.data?.rows
+    const cameraData = res.data?.items // <--- 修改为正确的路径
     if (cameraData) {
       videoStore.setCameraList(cameraData)
       if (cameraData.length > 0) {
