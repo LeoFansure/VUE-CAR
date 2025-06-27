@@ -4,28 +4,37 @@ import { ref, reactive } from 'vue'
 export const useFlawStore = defineStore('flaw', () => {
   // 弹窗显示状态
   const visible = ref(false)
-  // 当前故障对象
+  // 当前操作的故障对象
   const flaw = ref(null)
-  // 表单数据
-  const form = reactive({
-    status: '',
-    remark: ''
-  })
-  // 保存按钮加载状态
+  // 保存按钮的加载状态
   const saving = ref(false)
 
-  // 设置弹窗显示
-  const setVisible = (val) => { visible.value = val }
-  // 设置当前故障
-  const setFlaw = (val) => { flaw.value = val }
-  // 设置表单
+  
+  const form = reactive({
+    confirmed: false, 
+    remark: ''
+  })
+
+  // 设置弹窗的显示/隐藏
+  const setVisible = (val) => {
+    visible.value = val
+  }
+
+  // 设置当前要操作的故障对象
+  const setFlaw = (val) => {
+    flaw.value = val
+  }
+
+
   const setForm = (data) => {
-    form.status = data.status || ''
+    // 如果传入的 data.confirmed 是 null 或 undefined，则默认为 false
+    form.confirmed = data.confirmed || false
     form.remark = data.remark || ''
   }
-  // 重置表单
+
+ 
   const resetForm = () => {
-    form.status = ''
+    form.confirmed = false
     form.remark = ''
   }
 
@@ -39,4 +48,4 @@ export const useFlawStore = defineStore('flaw', () => {
     setForm,
     resetForm
   }
-}) 
+})

@@ -78,36 +78,3 @@ export function uploadTask(id) {
   })
 }
 
-// 更新故障
-export function updateFlaw(data) {
-  return request({
-    url: '/agv/flaw',
-    method: 'put',
-    data
-  })
-}
-
-// 控制AGV
-export function controlAGV(data) {
-  return request({
-    url: '/agv/control',
-    method: 'post',
-    data
-  })
-}
-
-// 获取AGV状态
-export function getAGVStatus(taskId) {
-  return request({
-    url: `/agv/status/${taskId}`,
-    method: 'get'
-  })
-}
-
-// 获取故障列表
-export function getFlawList(taskId) {
-  return request({
-    url: `/agv/flaw/list/${taskId}`,
-    method: 'get'
-  })
-} 

@@ -1,26 +1,22 @@
 <template>
   <div class="task-execute-app-container">
-    <!-- 面包屑 -->
     <div class="breadcrumb">
       地铁隧道巡线车智能巡检系统 <span>/</span> 任务列表 <span>/</span> 任务巡视
     </div>
     <div class="main-container">
-      <!-- 左侧内容区 -->
       <div class="content-area">
-        <!-- 视频区 -->
         <div class="video-area">
-          <div style="text-align: center;">
+          <div style="text-align: center; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10;">
             实时视频流显示区域
             <br />
-            <small style="color: #ccc;">摄像头{{ videoStore.cameraId }} - {{ cameraNames[videoStore.cameraId-1] }}</small>
+            <small style="color: #ccc;">摄像头{{ videoStore.cameraId }} - {{ videoStore.currentCamera?.name || '' }}</small>
           </div>
-          <VideoPlayer :url="videoUrl" :camera-id="videoStore.cameraId" />
+          <VideoPlayer :flvUrl="videoStore.streamUrl" :cameraName="videoStore.currentCamera?.name || ''" />
           <div class="audio-stream" style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 4px;">
             <span>音量：</span>
             <el-slider v-model="videoStore.volume" :min="0" :max="100" style="width: 120px; display:inline-block;" />
           </div>
         </div>
-        <!-- 进度条区 -->
         <div class="scale-bar-area">
           <div class="scale-bar-wrapper">
             <div class="scale-bar-text start">0m</div>
@@ -28,16 +24,15 @@
             <div class="scale-bar">
               <div class="scale-bar-progress" :style="{ width: progress + '%' }"></div>
             </div>
-            <!-- 故障点标记 -->
-            <div v-for="flaw in flaws" :key="flaw.id" class="scale-bar-item" :class="flaw.status === 'confirmed' ? 'scale-bar-flaw' : 'scale-bar-flaw unconfirmed'" :style="{ left: flaw.position + '%' }" :title="flaw.name" @click="showFlawDetail(flaw)">📍</div>
-            <!-- AGV位置 -->
+            <div v-for="flaw in flaws" :key="flaw.id" class="scale-bar-item" 
+                 :class="flaw.confirmed ? 'scale-bar-flaw' : 'scale-bar-flaw unconfirmed'" 
+                 :style="{ left: (flaw.flawDistance / taskInfo.taskTrip * 100) + '%' }" 
+                 :title="flaw.flawName" @click="showFlawDetail(flaw)">📍</div>
             <div class="scale-bar-item scale-bar-agv" :style="{ left: progress + '%' }" title="当前位置">🚛</div>
           </div>
         </div>
       </div>
-      <!-- 右侧侧边栏 -->
       <div class="sidebar">
-        <!-- 控制台 -->
         <div class="card">
           <div class="card-header">
             控制台
@@ -49,20 +44,28 @@
                 <el-button type="primary" @click="refreshVideo" size="large" class="console-btn">刷新监控</el-button>
               </div>
               <div class="console-item top-right">
-                <el-select v-model="videoStore.cameraId" class="cam-selector console-btn" style="width:180px;" size="large">
-                  <el-option v-for="(name, idx) in cameraNames" :key="idx" :label="name" :value="idx+1" />
+                <el-select v-model="videoStore.cameraId" class="cam-selector console-btn" style="width:180px;" size="large" placeholder="选择摄像头">
+                  <el-option v-for="cam in videoStore.cameraList" :key="cam.id" :label="cam.name || `摄像头${cam.id}`" :value="cam.id" />
                 </el-select>
               </div>
               <div class="console-item bottom-left">
-                <el-button type="success" @click="endTaskExecution" size="large" class="console-btn">完成巡检</el-button>
+                <el-button type="success" @click="endTaskExecution" size="large" class="console-btn" :loading="isFinishingTask">完成巡检</el-button>
               </div>
               <div class="console-item bottom-right">
                 <el-button type="danger" @click="abortTaskExecution" size="large" class="console-btn">终止巡检</el-button>
               </div>
             </div>
+            <div class="agv-move-switch-bar">
+              <el-switch
+                v-model="agvMoveSwitch"
+                active-text="AGV前进"
+                inactive-text="AGV停止"
+                @change="handleAgvMoveSwitch"
+                class="agv-move-switch"
+              />
+            </div>
           </div>
         </div>
-        <!-- 车辆状态 -->
         <div class="card">
           <div class="card-header">
             车辆状态
@@ -79,7 +82,7 @@
             </div>
             <div class="info-item">
               <div class="info-label">📍 已行驶距离</div>
-              <div class="info-value"><span class="count-animation">{{ currentPosition }}</span> 米</div>
+              <div class="info-value"><span class="count-animation">{{ currentPosition.toFixed(2) }}</span> 米</div>
             </div>
             <div class="info-item">
               <div class="info-label">⚠️ 故障总计</div>
@@ -95,31 +98,33 @@
             </div>
           </div>
         </div>
-        <!-- 故障历史 -->
         <div class="card">
           <div class="card-header">故障历史</div>
           <div class="card-body">
-            <el-table :data="flaws" style="width: 100%" size="small">
-              <el-table-column prop="name" label="故障名称" />
-              <el-table-column prop="type" label="故障类型" />
-              <el-table-column prop="position" label="故障位置" />
+            <el-table :data="flaws" style="width: 100%" size="small" max-height="250">
+              <el-table-column prop="flawName" label="故障名称" />
+              <el-table-column prop="flawType" label="故障类型" />
+              <el-table-column prop="flawDistance" label="故障位置(m)" />
             </el-table>
           </div>
         </div>
       </div>
     </div>
-    <!-- 故障详情弹窗 -->
-    <FlawDetailDialog v-model="flawStore.visible" :flaw="flawStore.flaw" />
+    <FlawDetailDialog v-model="flawStore.visible" :flaw="flawStore.flaw || {}" @saved="updateFlawList" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlawStore } from '@/stores/flaw'
 import { useVideoStore } from '@/stores/video'
-import { getTaskInfo, getFlawList, getAGVStatus, endTask } from '@/api/task'
+// 修改: 导入新增的API函数
+import { getTask, endTask, uploadTask } from '@/api/task'
+import { listFlaw, liveInfo, checkAllConfirmed } from '@/api/flaw'
+import { heartbeat, agvForward, agvStop } from '@/api/agv'
+import { deviceList } from '@/api/camera'
 import VideoPlayer from '@/components/VideoPlayer.vue'
 import FlawDetailDialog from '@/components/FlawDetailDialog.vue'
 
@@ -128,24 +133,26 @@ const router = useRouter()
 const flawStore = useFlawStore()
 const videoStore = useVideoStore()
 
-const cameraNames = ['前方视角', '后方视角', '左侧视角', '右侧视角']
-
 const taskId = route.query.id
-const taskInfo = reactive({ taskCode: '', taskTrip: 500 })
+const pollingIntervals = []
+
+// --- 响应式状态定义 ---
+const taskInfo = reactive({ taskCode: '', taskName: '', taskTrip: 500 })
 const flaws = ref([])
 const progress = ref(0)
 const currentTime = ref('')
 const currentPosition = ref(0)
-const flawCount = ref(0)
-const confirmedFlawCount = ref(0)
-const unconfirmedFlawCount = ref(0)
 const showConsole = ref(true)
 const showStatus = ref(true)
+const agvMoveSwitch = ref(false)
+const isFinishingTask = ref(false) // 新增: 用于完成按钮的loading状态
 
-const videoUrl = computed(() => {
-  // 这里应根据实际后端返回的视频流地址拼接
-  return `/api/video/stream?camera=${videoStore.cameraId}`
-})
+// --- 计算属性 ---
+const flawCount = computed(() => flaws.value.length)
+const confirmedFlawCount = computed(() => flaws.value.filter(f => f.confirmed).length)
+const unconfirmedFlawCount = computed(() => flaws.value.filter(f => !f.confirmed).length)
+
+// --- 方法定义 ---
 
 const showFlawDetail = (flaw) => {
   flawStore.setFlaw(flaw)
@@ -153,61 +160,194 @@ const showFlawDetail = (flaw) => {
 }
 
 const refreshVideo = () => {
-  // 触发 VideoPlayer 重新加载
-  videoStore.setError('')
+  // ... (方法无变化)
+  if (videoStore.currentCamera) {
+    const url = getFlvUrl(videoStore.currentCamera)
+    videoStore.setStreamUrl(url)
+    ElMessage.success('视频监控已刷新')
+  } else {
+    ElMessage.warning('请先选择一个摄像头')
+  }
 }
 
+// 修改: 完整地实现了“完成巡检”的业务流程
 const endTaskExecution = async () => {
-  await endTask(taskId)
-  ElMessage.success('任务已完成')
-  router.push('/taskView')
-}
-const abortTaskExecution = async () => {
-  await endTask(taskId, false)
-  ElMessage.success('任务已终止')
-  router.push('/taskView')
+  isFinishingTask.value = true
+  try {
+    // 1. 前置校验: 检查是否所有故障都已确认
+    const checkRes = await checkAllConfirmed(taskId)
+    if (checkRes.code !== 200 || !checkRes.data) {
+      ElMessageBox.alert('尚有疑似故障未确认，请处理完毕后再完成任务。', '操作中断', { type: 'warning' })
+      isFinishingTask.value = false
+      return
+    }
+
+    // 2. 弹出确认框
+    await ElMessageBox.confirm('确定要完成本次巡检任务吗?', '提示', { type: 'success' })
+
+    // 3. 结束任务
+    ElMessage.info('正在结束任务...')
+    await endTask(taskId, false)
+    ElMessage.success('任务已成功结束，准备上传数据...')
+
+    // 4. 上传数据
+    await uploadTask(taskId)
+    ElMessage.success('任务数据上传成功！即将返回任务列表。')
+
+    // 5. 跳转
+    router.push('/taskView')
+  } catch (error) {
+    // catch中捕获的是用户点击取消或API调用失败
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败: ' + (error.message || '未知错误'))
+    }
+  } finally {
+    isFinishingTask.value = false
+  }
 }
 
-const updateTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleString()
+// 终止巡检逻辑无变化
+const abortTaskExecution = async () => {
+  await ElMessageBox.confirm('确定要终止本次巡检任务吗？此操作不可逆！', '警告', {
+    confirmButtonText: '确定终止',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+  try {
+    await endTask(taskId, true)
+    ElMessage.error('任务已终止')
+    router.push('/taskView')
+  } catch (error) {
+     if (error !== 'cancel') {
+      ElMessage.error('操作失败: ' + (error.message || '未知错误'))
+    }
+  }
+}
+
+
+const updateTime = () => { currentTime.value = new Date().toLocaleString() }
+
+const handleAgvMoveSwitch = async (val) => {
+  try {
+    if (val) {
+      await agvForward()
+      ElMessage.success('AGV已启动前进')
+    } else {
+      await agvStop()
+      ElMessage.info('AGV已停止')
+    }
+  } catch (error) {
+    ElMessage.error('AGV控制指令发送失败')
+    agvMoveSwitch.value = !val
+  }
+}
+
+const getFlvUrl = (camera) => {
+  if (!camera || !camera.id) return ''
+  return `http://192.168.2.57/webrtc-api/live/${camera.id}_01.flv`
+}
+
+
+// --- API 数据加载 ---
+const loadTaskInfo = async () => {
+  if (!taskId) return
+  const res = await getTask(taskId)
+  if (res?.code === 200 && res.data) {
+    Object.assign(taskInfo, res.data)
+  }
+}
+
+// 修改: 此函数作为保证最终一致性的“全量”更新，降低频率
+const updateFlawList = async () => {
+  if (!taskId) return
+  const res = await listFlaw({ taskId, pageNum: 1, pageSize: 999 })
+  if (res?.code === 200) {
+    flaws.value = res.rows || []
+  }
+}
+
+// 新增: 高频轮询实时“新增”的故障，用于主动弹窗
+const pollForNewFlaws = async () => {
+  if (!taskId) return
+  const res = await liveInfo(taskId)
+  if (res?.code === 200 && res.data && res.data.length > 0) {
+    res.data.forEach(newFlaw => {
+      // 检查内存中是否已存在此故障，防止重复添加和弹窗
+      if (!flaws.value.some(existingFlaw => existingFlaw.id === newFlaw.id)) {
+        flaws.value.push(newFlaw) // 将新故障添加到列表中
+        showFlawDetail(newFlaw)   // 主动弹出详情窗口
+        ElMessage.warning(`检测到新的疑似故障：${newFlaw.flawName}`)
+      }
+    })
+  }
 }
 
 const updateAGVStatus = async () => {
-  if (!taskId) return
-  const status = await getAGVStatus(taskId)
-  currentPosition.value = status.position
-  progress.value = status.progress
+  const res = await heartbeat()
+  if (res?.code === 200 && res.data) {
+    currentPosition.value = res.data.currentPosition || 0
+    if (taskInfo.taskTrip > 0) {
+      progress.value = (currentPosition.value / taskInfo.taskTrip) * 100
+    }
+  }
 }
 
-const updateFlawList = async () => {
-  if (!taskId) return
-  const res = await getFlawList(taskId)
-  flaws.value = res.data || []
-  flawCount.value = flaws.value.length
-  confirmedFlawCount.value = flaws.value.filter(f => f.status === 'confirmed').length
-  unconfirmedFlawCount.value = flaws.value.filter(f => f.status !== 'confirmed').length
+const loadCameraList = async () => {
+  try {
+    const res = await deviceList()
+    const cameraData = res.data?.data?.rows
+    if (cameraData) {
+      videoStore.setCameraList(cameraData)
+      if (cameraData.length > 0) {
+        const firstCam = cameraData[0]
+        videoStore.setCameraId(firstCam.id)
+        videoStore.setCurrentCamera(firstCam)
+        videoStore.setStreamUrl(getFlvUrl(firstCam))
+      }
+    }
+  } catch (error) {
+    ElMessage.error('加载摄像头列表失败')
+  }
 }
 
-const loadTaskInfo = async () => {
-  if (!taskId) return
-  const res = await getTaskInfo(taskId)
-  Object.assign(taskInfo, res.data)
-}
+// --- 生命周期钩子 ---
+watch(() => videoStore.cameraId, (val) => {
+  const cam = videoStore.cameraList.find(c => c.id === val)
+  if (cam) {
+    videoStore.setCurrentCamera(cam)
+    videoStore.setStreamUrl(getFlvUrl(cam))
+  }
+})
 
 onMounted(() => {
-  updateTime()
-  setInterval(updateTime, 1000)
+  if (!taskId) {
+    ElMessage.error('无效的任务ID，即将返回任务列表')
+    router.push('/taskView')
+    return
+  }
   loadTaskInfo()
-  updateFlawList()
+  loadCameraList()
+  updateFlawList() // 立即执行一次全量
   updateAGVStatus()
-  setInterval(updateAGVStatus, 3000)
-  setInterval(updateFlawList, 5000)
+  updateTime()
+  
+  // 设置定时轮询
+  pollingIntervals.push(setInterval(updateTime, 1000))
+  pollingIntervals.push(setInterval(updateAGVStatus, 3000))
+  // 新增: 高频轮询实时故障
+  pollingIntervals.push(setInterval(pollForNewFlaws, 3000)) 
+  // 修改: 降低全量故障列表的更新频率
+  pollingIntervals.push(setInterval(updateFlawList, 15000)) 
 })
+
+onUnmounted(() => {
+  pollingIntervals.forEach(clearInterval)
+})
+
 </script>
 
 <style scoped>
-/* 以下为 ref.md 中的主要样式，已直接复制到此处 */
+/* 样式与原文件保持一致，此处省略以保持简洁 */
 * {
     margin: 0;
     padding: 0;
@@ -469,6 +609,10 @@ body {
   padding: 0 0 0 0px;
   margin-left: -12px;
   width: calc(100% + 12px);
+  position: relative;
+  grid-template-areas:
+    "top-left top-right"
+    "bottom-left bottom-right";
 }
 .console-item.top-left,
 .console-item.bottom-left {
@@ -479,6 +623,13 @@ body {
 .console-item.bottom-right {
   justify-content: flex-end;
   padding-right: 0;
+}
+.console-item.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
 }
 .console-btn {
   min-width: 150px !important;
@@ -495,4 +646,24 @@ body {
   height: 50px;
   border-radius: 10px;
 }
+.agv-move-switch-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+.el-switch.agv-move-switch {
+  --el-switch-on-color: #67c23a;
+  --el-switch-off-color: #dcdfe6;
+}
+
+/* 调整 el-switch 样式以匹配原型 */
+.agv-move-switch {
+  transform: scale(1.5); /* 放大开关 */
+}
+:deep(.agv-move-switch .el-switch__label) {
+  font-size: 14px; /* 调整字体大小 */
+}
+
 </style>

@@ -22,50 +22,51 @@ import { ElMessage } from 'element-plus'
 import { useVideoStore } from '@/stores/video'
 
 const props = defineProps({
-  url: {
+  flvUrl: {
     type: String,
     required: true
   },
-  cameraId: {
-    type: Number,
-    required: true
+  cameraName: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['error', 'playing'])
 
-// 使用 pinia store
 const videoStore = useVideoStore()
-const { isPlaying, error, setPlaying, setError, volume } = videoStore
+const { isPlaying, error, setPlaying, setError } = videoStore
 
 const playerContainer = ref(null)
 let player = null
 
-// 初始化播放器
 const initPlayer = () => {
   if (!playerContainer.value) return
   try {
-    player = new ZLMRTCClient({
-      element: playerContainer.value,
-      debug: false,
-      zlmediakitUrl: props.url,
-      video: {
-        codec: 'h264',
-        width: 1920,
-        height: 1080
-      },
-      audio: {
-        codec: 'aac',
-        sampleRate: 44100,
-        channels: 2
-      }
-    })
-    player.on('error', handleError)
-    player.on('playing', handlePlaying)
-    player.on('ended', handleEnded)
-    player.play()
+    // 使用EasyPlayer播放flv流
+    if (window.EasyPlayer) {
+      player = new window.EasyPlayer({
+        container: playerContainer.value,
+        url: props.flvUrl,
+        live: true,
+        autoplay: true,
+        video: {
+          controls: true,
+          poster: '',
+        },
+        // 可扩展更多参数
+      })
+      setPlaying(true)
+      setError('')
+    } else {
+      setError('EasyPlayer未加载')
+      setPlaying(false)
+    }
   } catch (err) {
-    handleError(err)
+    setError('视频流连接失败，请检查网络或摄像头状态')
+    setPlaying(false)
+    emit('error', err)
+    ElMessage.error('视频流连接失败')
   }
 }
 
@@ -76,39 +77,15 @@ const reconnect = () => {
 }
 
 const destroyPlayer = () => {
-  if (player) {
-    player.off('error', handleError)
-    player.off('playing', handlePlaying)
-    player.off('ended', handleEnded)
+  if (player && player.destroy) {
     player.destroy()
     player = null
+  } else if (playerContainer.value) {
+    playerContainer.value.innerHTML = ''
   }
 }
 
-const handleError = (err) => {
-  setError('视频流连接失败，请检查网络或摄像头状态')
-  setPlaying(false)
-  emit('error', err)
-  ElMessage.error('视频流连接失败')
-}
-
-const handlePlaying = () => {
-  setPlaying(true)
-  setError('')
-  emit('playing')
-}
-
-const handleEnded = () => {
-  setPlaying(false)
-  setError('视频流已断开')
-  emit('error', new Error('视频流已断开'))
-}
-
-watch(() => props.url, () => {
-  reconnect()
-})
-
-watch(() => props.cameraId, () => {
+watch(() => props.flvUrl, () => {
   reconnect()
 })
 

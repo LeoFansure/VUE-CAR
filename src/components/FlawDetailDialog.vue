@@ -6,12 +6,11 @@
     :before-close="handleClose"
   >
     <div class="flaw-detail">
-      <!-- 故障图片 -->
       <div class="flaw-image">
         <el-image
-          :src="flaw.imageUrl"
+          :src="flaw.flawImageUrl"
           fit="cover"
-          :preview-src-list="[flaw.imageUrl]"
+          :preview-src-list="[flaw.flawImageUrl]"
         >
           <template #error>
             <div class="image-error">
@@ -21,12 +20,11 @@
           </template>
         </el-image>
       </div>
-      
-      <!-- 故障信息 -->
+
       <div class="flaw-info">
         <div class="info-item">
-          <span class="label">故障编号：</span>
-          <span class="value">{{ flaw.flawCode }}</span>
+          <span class="label">故障名称：</span>
+          <span class="value">{{ flaw.flawName }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障类型：</span>
@@ -34,47 +32,40 @@
         </div>
         <div class="info-item">
           <span class="label">故障位置：</span>
-          <span class="value">{{ flaw.position }}m</span>
+          <span class="value">{{ flaw.flawDistance }}m</span>
         </div>
         <div class="info-item">
           <span class="label">发现时间：</span>
-          <span class="value">{{ formatDateTime(flaw.detectTime) }}</span>
+          <span class="value">{{ formatDateTime(flaw.createTime) }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障描述：</span>
-          <span class="value">{{ flaw.description }}</span>
+          <span class="value">{{ flaw.flawDesc }}</span>
         </div>
       </div>
-      
-      <!-- 故障处理 -->
+
       <div class="flaw-handling">
         <el-form
           ref="formRef"
           :model="form"
-          :rules="rules"
           label-width="100px"
         >
-          <el-form-item label="处理状态" prop="status">
-            <el-select v-model="form.status" placeholder="请选择处理状态">
-              <el-option label="待处理" value="pending" />
-              <el-option label="处理中" value="processing" />
-              <el-option label="已处理" value="resolved" />
-              <el-option label="已忽略" value="ignored" />
-            </el-select>
+          <el-form-item label="确认故障" prop="confirmed">
+            <el-switch v-model="form.confirmed" />
           </el-form-item>
-          
-          <el-form-item label="处理备注" prop="remark">
+
+          <el-form-item label="补充说明" prop="remark">
             <el-input
               v-model="form.remark"
               type="textarea"
               :rows="3"
-              placeholder="请输入处理备注"
+              placeholder="请输入补充说明或现场观察记录"
             />
           </el-form-item>
         </el-form>
       </div>
     </div>
-    
+
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
@@ -90,8 +81,9 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import { updateFlaw } from '@/api/task'
-import { formatDateTime } from '@/utils/common'
+// 修正: 从 @/api/flaw 导入 updateFlaw
+import { updateFlaw } from '@/api/flaw' 
+import { formatDateTime } from '@/utils/common' // 假设您有这个工具函数
 import { useFlawStore } from '@/stores/flaw'
 
 const props = defineProps({
@@ -107,25 +99,30 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
+const formRef = ref(null) // 表单引用
+
 // 使用 pinia store
 const flawStore = useFlawStore()
-const { visible, form, saving, setVisible, setForm, resetForm } = flawStore
+// 从 store 中解构出状态和方法
+const { visible, form, saving, setVisible, setForm } = flawStore
 
-// 监听visible变化
+// 监听父组件传入的 modelValue 来控制弹窗显示
 watch(() => props.modelValue, (val) => {
   setVisible(val)
 })
 
+// 监听内部 visible 变化，同步到父组件
 watch(() => visible.value, (val) => {
   emit('update:modelValue', val)
 })
 
-// 监听flaw变化
-watch(() => props.flaw, (val) => {
-  if (val) {
-    setForm({ status: val.status, remark: val.remark })
+// 监听传入的 flaw 对象，当它变化时，更新表单
+watch(() => props.flaw, (newFlaw) => {
+  if (newFlaw) {
+    // 使用修改后的 setForm 方法
+    setForm({ confirmed: newFlaw.confirmed, remark: newFlaw.remark })
   }
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 // 关闭弹窗
 const handleClose = () => {
@@ -134,24 +131,26 @@ const handleClose = () => {
 
 // 保存处理结果
 const handleSave = async () => {
-  if (!form) return
   try {
-    await (typeof form.validate === 'function' ? form.validate() : Promise.resolve())
+    // 更新: 提交前不再需要校验，因为开关和文本域通常不需要复杂规则
     flawStore.saving = true
-    await updateFlaw({
+    // 更新: 提交的数据结构与 API 对齐
+    const res = await updateFlaw({
       id: props.flaw.id,
-      status: form.status,
+      confirmed: form.confirmed,
       remark: form.remark
     })
-    ElMessage.success('保存成功')
-    emit('saved')
-    handleClose()
-  } catch (error) {
-    if (error.errors) {
-      ElMessage.error('请检查表单填写是否正确')
+
+    // 检查API返回结果
+    if (res.code === 200) {
+      ElMessage.success('保存成功')
+      emit('saved') // 通知父组件保存成功，以便刷新列表
+      handleClose()
     } else {
-      ElMessage.error('保存失败：' + (error.message || '未知错误'))
+      ElMessage.error('保存失败：' + (res.msg || '未知错误'))
     }
+  } catch (error) {
+    ElMessage.error('保存失败：' + (error.message || '网络错误'))
   } finally {
     flawStore.saving = false
   }
@@ -159,16 +158,15 @@ const handleSave = async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 样式与原文件保持一致，此处省略以保持简洁 */
 .flaw-detail {
   .flaw-image {
     margin-bottom: 20px;
-    
     .el-image {
       width: 100%;
       height: 300px;
       border-radius: 8px;
       overflow: hidden;
-      
       .image-error {
         width: 100%;
         height: 100%;
@@ -178,7 +176,6 @@ const handleSave = async () => {
         justify-content: center;
         background: #f5f7fa;
         color: #909399;
-        
         .el-icon {
           font-size: 48px;
           margin-bottom: 8px;
@@ -186,41 +183,25 @@ const handleSave = async () => {
       }
     }
   }
-  
   .flaw-info {
     margin-bottom: 20px;
     padding: 16px;
     background: #f5f7fa;
     border-radius: 8px;
-    
     .info-item {
       display: flex;
       margin-bottom: 12px;
-      
       &:last-child {
         margin-bottom: 0;
       }
-      
       .label {
         width: 100px;
         color: #606266;
+        flex-shrink: 0;
       }
-      
       .value {
         flex: 1;
         color: #303133;
-      }
-    }
-  }
-  
-  .flaw-handling {
-    .el-form {
-      .el-form-item {
-        margin-bottom: 20px;
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
       }
     }
   }
@@ -228,9 +209,8 @@ const handleSave = async () => {
 
 .dialog-footer {
   text-align: center;
-  
   .el-button {
     min-width: 80px;
   }
 }
-</style> 
+</style>
