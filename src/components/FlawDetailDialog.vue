@@ -1,17 +1,16 @@
 <template>
   <el-dialog
-    v-model="visible"
+    v-model="flawStore.visible"
     title="故障详情"
     width="600px"
     :before-close="handleClose"
   >
-    <div class="flaw-detail">
-      <!-- 故障图片 -->
+    <div v-if="flawStore.flaw" class="flaw-detail">
       <div class="flaw-image">
         <el-image
-          :src="flaw.imageUrl"
+          :src="fullImageUrl"
           fit="cover"
-          :preview-src-list="[flaw.imageUrl]"
+          :preview-src-list="[fullImageUrl]"
         >
           <template #error>
             <div class="image-error">
@@ -21,64 +20,55 @@
           </template>
         </el-image>
       </div>
-      
-      <!-- 故障信息 -->
+
       <div class="flaw-info">
         <div class="info-item">
-          <span class="label">故障编号：</span>
-          <span class="value">{{ flaw.flawCode }}</span>
+          <span class="label">故障名称：</span>
+          <span class="value">{{ flawStore.flaw.flawName }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障类型：</span>
-          <span class="value">{{ flaw.flawType }}</span>
+          <span class="value">{{ flawStore.flaw.flawType }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障位置：</span>
-          <span class="value">{{ flaw.position }}m</span>
+          <span class="value">{{ flawStore.flaw.flawDistance }}m</span>
         </div>
         <div class="info-item">
           <span class="label">发现时间：</span>
-          <span class="value">{{ formatDateTime(flaw.detectTime) }}</span>
+          <span class="value">{{ formattedCreateTime }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障描述：</span>
-          <span class="value">{{ flaw.description }}</span>
+          <span class="value">{{ flawStore.flaw.flawDesc }}</span>
         </div>
       </div>
-      
-      <!-- 故障处理 -->
+
       <div class="flaw-handling">
         <el-form
           ref="formRef"
-          :model="form"
-          :rules="rules"
+          :model="flawStore.form"
           label-width="100px"
         >
-          <el-form-item label="处理状态" prop="status">
-            <el-select v-model="form.status" placeholder="请选择处理状态">
-              <el-option label="待处理" value="pending" />
-              <el-option label="处理中" value="processing" />
-              <el-option label="已处理" value="resolved" />
-              <el-option label="已忽略" value="ignored" />
-            </el-select>
+          <el-form-item label="确认故障" prop="confirmed">
+            <el-switch v-model="flawStore.form.confirmed" />
           </el-form-item>
-          
-          <el-form-item label="处理备注" prop="remark">
+          <el-form-item label="补充说明" prop="remark">
             <el-input
-              v-model="form.remark"
+              v-model="flawStore.form.remark"
               type="textarea"
               :rows="3"
-              placeholder="请输入处理备注"
+              placeholder="请输入补充说明或现场观察记录"
             />
           </el-form-item>
         </el-form>
       </div>
     </div>
-    
+
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">
+        <el-button type="primary" @click="handleSave" :loading="flawStore.saving">
           保存
         </el-button>
       </div>
@@ -87,88 +77,87 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import { updateFlaw } from '@/api/task'
+import { updateFlaw } from '@/api/flaw' 
 import { formatDateTime } from '@/utils/common'
 import { useFlawStore } from '@/stores/flaw'
 
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    required: true
-  },
-  flaw: {
-    type: Object,
-    required: true
-  }
-})
-
-const emit = defineEmits(['update:modelValue', 'saved'])
-
-// 使用 pinia store
+const emit = defineEmits(['saved'])
+const formRef = ref(null)
 const flawStore = useFlawStore()
-const { visible, form, saving, setVisible, setForm, resetForm } = flawStore
+const { setVisible, setForm, setSaving } = flawStore
 
-// 监听visible变化
-watch(() => props.modelValue, (val) => {
-  setVisible(val)
-})
+// --- 新增: 定义服务器基础地址 ---
+const SERVER_BASE_URL = 'http://192.168.2.57/prod-api/file'
 
-watch(() => visible.value, (val) => {
-  emit('update:modelValue', val)
-})
-
-// 监听flaw变化
-watch(() => props.flaw, (val) => {
-  if (val) {
-    setForm({ status: val.status, remark: val.remark })
+// --- 新增: 用于生成完整图片URL的计算属性 ---
+const fullImageUrl = computed(() => {
+  const flaw = flawStore.flaw
+  if (flaw && flaw.flawImageUrl) {
+    // 检查URL是否已经是完整的http地址，如果是则直接使用
+    if (flaw.flawImageUrl.startsWith('http')) {
+      return flaw.flawImageUrl
+    }
+    // 如果是相对路径，则拼接服务器基础地址
+    return `${SERVER_BASE_URL}${flaw.flawImageUrl}`
   }
-}, { immediate: true })
+  return '' // 如果没有图片URL，返回空字符串
+})
 
-// 关闭弹窗
+const formattedCreateTime = computed(() => {
+  if (flawStore.flaw && flawStore.flaw.createTime) {
+    return formatDateTime(flawStore.flaw.createTime)
+  }
+  return 'N/A'
+})
+
+watch(() => flawStore.flaw, (newFlaw) => {
+  if (newFlaw) {
+    // console.log('当前故障对象中的图片URL是:', newFlaw.flawImageUrl); // 调试完成后可以删除或注释掉
+    setForm({ confirmed: newFlaw.confirmed, remark: newFlaw.remark })
+  }
+}, { deep: true })
+
 const handleClose = () => {
   setVisible(false)
 }
 
-// 保存处理结果
 const handleSave = async () => {
-  if (!form) return
+  if (!flawStore.flaw) return
+  setSaving(true)
   try {
-    await (typeof form.validate === 'function' ? form.validate() : Promise.resolve())
-    flawStore.saving = true
-    await updateFlaw({
-      id: props.flaw.id,
-      status: form.status,
-      remark: form.remark
+    const res = await updateFlaw({
+      id: flawStore.flaw.id,
+      confirmed: flawStore.form.confirmed,
+      remark: flawStore.form.remark
     })
-    ElMessage.success('保存成功')
-    emit('saved')
-    handleClose()
-  } catch (error) {
-    if (error.errors) {
-      ElMessage.error('请检查表单填写是否正确')
+    if (res.code === 200) {
+      ElMessage.success('保存成功')
+      emit('saved')
+      handleClose()
     } else {
-      ElMessage.error('保存失败：' + (error.message || '未知错误'))
+      ElMessage.error('保存失败：' + (res.msg || '未知错误'))
     }
+  } catch (error) {
+    ElMessage.error('保存失败：' + (error.message || '网络错误'))
   } finally {
-    flawStore.saving = false
+    setSaving(false)
   }
 }
 </script>
 
 <style lang="scss" scoped>
+/* 您的样式代码保持不变 */
 .flaw-detail {
   .flaw-image {
     margin-bottom: 20px;
-    
     .el-image {
       width: 100%;
       height: 300px;
       border-radius: 8px;
       overflow: hidden;
-      
       .image-error {
         width: 100%;
         height: 100%;
@@ -178,7 +167,6 @@ const handleSave = async () => {
         justify-content: center;
         background: #f5f7fa;
         color: #909399;
-        
         .el-icon {
           font-size: 48px;
           margin-bottom: 8px;
@@ -186,41 +174,25 @@ const handleSave = async () => {
       }
     }
   }
-  
   .flaw-info {
     margin-bottom: 20px;
     padding: 16px;
     background: #f5f7fa;
     border-radius: 8px;
-    
     .info-item {
       display: flex;
       margin-bottom: 12px;
-      
       &:last-child {
         margin-bottom: 0;
       }
-      
       .label {
         width: 100px;
         color: #606266;
+        flex-shrink: 0;
       }
-      
       .value {
         flex: 1;
         color: #303133;
-      }
-    }
-  }
-  
-  .flaw-handling {
-    .el-form {
-      .el-form-item {
-        margin-bottom: 20px;
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
       }
     }
   }
@@ -228,9 +200,8 @@ const handleSave = async () => {
 
 .dialog-footer {
   text-align: center;
-  
   .el-button {
     min-width: 80px;
   }
 }
-</style> 
+</style>
