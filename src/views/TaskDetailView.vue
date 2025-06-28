@@ -169,9 +169,9 @@
           <div class="info-row">
             <span class="info-label">故障状态:</span>
             <span class="info-value">
-              <el-select v-model="currentFlaw.status" style="width: 120px">
-                <el-option label="故障属实" value="confirmed" />
-                <el-option label="疑似故障" value="suspected" />
+              <el-select v-model="currentFlaw.confirmed" style="width: 120px">
+                <el-option label="故障属实" :value="true" />
+                <el-option label="不是故障" :value="false" />
               </el-select>
             </span>
           </div>
@@ -300,12 +300,12 @@ const baseImageUrl = 'http://192.168.2.57/prod-api/file/'
 
 // 获取已确认故障数量
 const getConfirmedFlawCount = () => {
-  return flawList.value.filter(flaw => flaw.status === 'confirmed').length
+  return flawList.value.filter(flaw => flaw.confirmed === true).length
 }
 
 // 获取疑似故障数量
 const getUnconfirmedFlawCount = () => {
-  return flawList.value.filter(flaw => flaw.status === 'suspected').length
+  return flawList.value.filter(flaw => flaw.confirmed === null).length
 }
 
 // 计算故障在进度条上的位置
@@ -318,15 +318,13 @@ const calculateFlawPosition = (flaw) => {
 
 // 获取故障标记的样式类
 const getFlawMarkerClass = (flaw) => {
-  if (flaw.status) {
-    if (flaw.status === 'confirmed') {
+    if (flaw.confirmed === true) {
       return 'confirmed'
-    } else if (flaw.status === 'suspected') {
+    } else if (flaw.confirmed === false) {
+      return 'false-alarm'
+    } else {
       return 'suspected'
     }
-  } else if (typeof flaw.confirmed === 'boolean') {
-    return flaw.confirmed ? 'confirmed' : 'suspected'
-  }
 }
 
 // 获取完整图片url，只用 flawImage 字段
@@ -349,17 +347,14 @@ const selectFlaw = (flaw) => {
 
 // 打开故障详情弹窗
 const openFlawDialog = (flaw) => {
-  let status = flaw.status
-  if (!status) {
-    status = flaw.confirmed === true ? 'confirmed' : 'suspected'
-  }
   currentFlaw.value = {
     id: flaw.id,
     flawType: flaw.flawType,
     flawName: flaw.flawName,
     flawDesc: flaw.flawDesc,
+    flawDistance: flaw.flawDistance,
     remark: flaw.remark,
-    status,
+    confirmed: flaw.confirmed,
     flawImageUrl: getFlawImageUrl(flaw)
   }
   showFlawDialog.value = true
@@ -375,7 +370,7 @@ const saveFlawInfo = async () => {
       flawType: currentFlaw.value.flawType,
       flawName: currentFlaw.value.flawName,
       flawDesc: currentFlaw.value.flawDesc,
-      confirmed: currentFlaw.value.status === 'confirmed',
+      confirmed: currentFlaw.value.confirmed,
       remark: currentFlaw.value.remark
     }
     await updateFlaw(flawData)
@@ -384,8 +379,7 @@ const saveFlawInfo = async () => {
     if (index !== -1) {
       flawList.value[index] = {
         ...flawList.value[index],
-        ...flawData,
-        status: currentFlaw.value.status
+        ...flawData
       }
     }
     ElMessage.success('故障信息更新成功')
