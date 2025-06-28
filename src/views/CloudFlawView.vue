@@ -28,7 +28,7 @@
           <el-input v-model="searchForm.flawName" placeholder="请输入缺陷名称" clearable />
         </el-form-item>
         <el-form-item label="缺陷等级">
-          <el-select v-model="searchForm.level" placeholder="请选择等级" clearable>
+          <el-select v-model="searchForm.flawlevel" placeholder="请选择等级" clearable>
             <el-option label="低" value="低" />
             <el-option label="中" value="中" />
             <el-option label="高" value="高" />
@@ -85,11 +85,6 @@
             <el-tag :type="scope.row.uploaded ? 'success' : 'warning'">
               {{ scope.row.uploaded ? '已上传' : '未上传' }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180">
-          <template #default="scope">
-            {{ formatDate(scope.row.createTime) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
@@ -256,9 +251,6 @@
               {{ currentFlaw.uploaded ? '已上传' : '未上传' }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="创建时间" :span="2">
-            {{ formatDate(currentFlaw.createTime) }}
-          </el-descriptions-item>
           <el-descriptions-item label="缺陷描述" :span="2">
             {{ currentFlaw.flawDesc }}
           </el-descriptions-item>
@@ -276,7 +268,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Back, Plus, Search, Refresh } from '@element-plus/icons-vue'
-import { getFlaws, createFlaw, updateFlaw, deleteFlaw, confirmFlaw, getFlawById } from '@/api/cloud'
+import { getFlaws, createFlaw, updateFlaw, deleteFlaw as deleteFlawApi, confirmFlaw, getFlawById } from '@/api/cloud'
 
 const router = useRouter()
 const route = useRoute()
@@ -295,7 +287,7 @@ const flawFormRef = ref()
 const searchForm = reactive({
   flawType: '',
   flawName: '',
-  level: '',
+  flawlevel: '',
   confirmed: null
 })
 
@@ -342,7 +334,7 @@ const flawRules = {
   flawDesc: [
     { required: true, message: '请输入缺陷描述', trigger: 'blur' }
   ],
-  level: [
+  flawlevel: [
     { required: true, message: '请选择缺陷等级', trigger: 'change' }
   ]
 }
@@ -380,7 +372,7 @@ const resetSearch = () => {
   Object.assign(searchForm, {
     flawType: '',
     flawName: '',
-    level: '',
+    flawlevel: '',
     confirmed: null
   })
   pagination.current = 1
@@ -426,7 +418,7 @@ const deleteFlaw = async (flaw) => {
       }
     )
     
-    await deleteFlaw(flaw.id)
+    await deleteFlawApi(flaw.id)
     ElMessage.success('删除成功')
     loadFlaws()
   } catch (error) {
