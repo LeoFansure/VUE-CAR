@@ -8,9 +8,9 @@
     <div v-if="flawStore.flaw" class="flaw-detail">
       <div class="flaw-image">
         <el-image
-          :src="flawStore.flaw.flawImageUrl"
+          :src="fullImageUrl"
           fit="cover"
-          :preview-src-list="[flawStore.flaw.flawImageUrl]"
+          :preview-src-list="[fullImageUrl]"
         >
           <template #error>
             <div class="image-error">
@@ -36,7 +36,7 @@
         </div>
         <div class="info-item">
           <span class="label">发现时间：</span>
-          <span class="value">{{ formatDateTime(flawStore.flaw.createTime) }}</span>
+          <span class="value">{{ formattedCreateTime }}</span>
         </div>
         <div class="info-item">
           <span class="label">故障描述：</span>
@@ -53,7 +53,6 @@
           <el-form-item label="确认故障" prop="confirmed">
             <el-switch v-model="flawStore.form.confirmed" />
           </el-form-item>
-
           <el-form-item label="补充说明" prop="remark">
             <el-input
               v-model="flawStore.form.remark"
@@ -78,39 +77,55 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
 import { updateFlaw } from '@/api/flaw' 
 import { formatDateTime } from '@/utils/common'
 import { useFlawStore } from '@/stores/flaw'
 
-// 修改: 不再需要 props，只需要 emit
 const emit = defineEmits(['saved'])
-
 const formRef = ref(null)
-
 const flawStore = useFlawStore()
-// 从 store 中解构出方法
 const { setVisible, setForm, setSaving } = flawStore
 
-// 修改: 监听 flawStore 中的 flaw 对象变化来更新表单
+// --- 新增: 定义服务器基础地址 ---
+const SERVER_BASE_URL = 'http://192.168.2.57/prod-api/file'
+
+// --- 新增: 用于生成完整图片URL的计算属性 ---
+const fullImageUrl = computed(() => {
+  const flaw = flawStore.flaw
+  if (flaw && flaw.flawImageUrl) {
+    // 检查URL是否已经是完整的http地址，如果是则直接使用
+    if (flaw.flawImageUrl.startsWith('http')) {
+      return flaw.flawImageUrl
+    }
+    // 如果是相对路径，则拼接服务器基础地址
+    return `${SERVER_BASE_URL}${flaw.flawImageUrl}`
+  }
+  return '' // 如果没有图片URL，返回空字符串
+})
+
+const formattedCreateTime = computed(() => {
+  if (flawStore.flaw && flawStore.flaw.createTime) {
+    return formatDateTime(flawStore.flaw.createTime)
+  }
+  return 'N/A'
+})
+
 watch(() => flawStore.flaw, (newFlaw) => {
   if (newFlaw) {
-    // 当store中的故障数据变化时，自动填充表单
+    // console.log('当前故障对象中的图片URL是:', newFlaw.flawImageUrl); // 调试完成后可以删除或注释掉
     setForm({ confirmed: newFlaw.confirmed, remark: newFlaw.remark })
   }
-}, { deep: true }) // 使用 deep watch 确保内部属性变化也能被侦测到
+}, { deep: true })
 
-// 关闭弹窗
 const handleClose = () => {
   setVisible(false)
 }
 
-// 保存处理结果
 const handleSave = async () => {
-  if (!flawStore.flaw) return // 防御性编程
-
+  if (!flawStore.flaw) return
   setSaving(true)
   try {
     const res = await updateFlaw({
@@ -118,10 +133,9 @@ const handleSave = async () => {
       confirmed: flawStore.form.confirmed,
       remark: flawStore.form.remark
     })
-
     if (res.code === 200) {
       ElMessage.success('保存成功')
-      emit('saved') // 通知父组件保存成功，以便刷新列表
+      emit('saved')
       handleClose()
     } else {
       ElMessage.error('保存失败：' + (res.msg || '未知错误'))
@@ -135,8 +149,7 @@ const handleSave = async () => {
 </script>
 
 <style lang="scss" scoped>
-
-/* 样式与原文件保持一致，此处省略以保持简洁 */
+/* 您的样式代码保持不变 */
 .flaw-detail {
   .flaw-image {
     margin-bottom: 20px;
@@ -191,3 +204,4 @@ const handleSave = async () => {
     min-width: 80px;
   }
 }
+</style>
