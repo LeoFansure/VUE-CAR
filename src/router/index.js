@@ -42,7 +42,32 @@ const router = createRouter({
       path: '/settingsView',
       name: 'settingsView',
       component: () => import('../views/SettingsView.vue'),
-    } 
+    },
+    {
+      path: '/cloudSystem',
+      name: 'cloudSystem',
+      component: () => import('../views/CloudSystemView.vue'),
+    },
+    {
+      path: '/cloudConfig',
+      name: 'cloudConfig',
+      component: () => import('../views/CloudConfigView.vue'),
+    },
+    {
+      path: '/cloudTask',
+      name: 'cloudTask',
+      component: () => import('../views/CloudTaskView.vue'),
+    },
+    {
+      path: '/cloudFlaw',
+      name: 'cloudFlaw',
+      component: () => import('../views/CloudFlawView.vue'),
+    },
+    {
+      path: '/cloudTest',
+      name: 'cloudTest',
+      component: () => import('../views/CloudTestView.vue'),
+    }
   ],
 })
 

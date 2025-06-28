@@ -1,14 +1,14 @@
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 创建axios实例 - 小车系统使用远程后端
-const service = axios.create({
-  baseURL: 'http://192.168.2.57/prod-api',
+// 创建axios实例 - 云端系统使用本地后端
+const cloudService = axios.create({
+  baseURL: 'http://localhost:8080',
   timeout: 30000
 })
 
 // 请求拦截器
-service.interceptors.request.use(
+cloudService.interceptors.request.use(
   config => {
     return config
   },
@@ -19,7 +19,7 @@ service.interceptors.request.use(
 )
 
 // 响应拦截器
-service.interceptors.response.use(
+cloudService.interceptors.response.use(
   response => {
     const res = response.data
     
@@ -46,4 +46,4 @@ service.interceptors.response.use(
   }
 )
 
-export default service 
+export default cloudService 

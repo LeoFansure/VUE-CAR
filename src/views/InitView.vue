@@ -2,7 +2,7 @@
   <div class="init-container">
     <div class="header">
       <h1>AGV智能巡检系统</h1>
-      <p class="subtitle">正在进行系统初始化检查...</p>
+      <p class="subtitle">双系统架构 - 小车系统 + 云端管理系统</p>
     </div>
     
     <div class="check-list">
@@ -49,23 +49,30 @@
         @click="showSettings = true"
         :icon="Setting"
       />
-      <!-- <el-button 
-        type="success" 
-        size="large"
-        :disabled="!allChecksPassed"
-        @click="enterSystem"
-      >
-        进入系统
-      </el-button> -->
       <el-button 
         type="success" 
         size="large"
         @click="enterSystem"
+        :icon="Monitor"
       >
-        进入系统
+        进入小车系统
       </el-button>
       <el-button 
         type="primary" 
+        size="large"
+        @click="enterCloudSystem"
+      >
+        进入云端系统
+      </el-button>
+      <el-button 
+        type="info" 
+        size="large"
+        @click="enterCloudTest"
+      >
+        云端系统测试
+      </el-button>
+      <el-button 
+        type="warning" 
         size="large"
         @click="startCheck"
         :loading="isChecking"
@@ -90,8 +97,9 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading, Check, Close, Setting } from '@element-plus/icons-vue'
-import { checkFs, checkDb, checkAgv, checkCam } from '@/api/system'
+import { Loading, Check, Close, Setting, Monitor } from '@element-plus/icons-vue'
+import { checkFs, checkAgv, checkCam } from '@/api/system'
+import { getSysConfigs } from '@/api/cloud'
 import SettingsView from './SettingsView.vue'
 
 const router = useRouter()
@@ -110,16 +118,9 @@ const checkItems = reactive([
     checkFn: checkFs
   },
   {
-    title: '正在检测数据库系统连接',
-    status: 'pending', 
-    details: '解决方案：请检查数据库连接设置是否正确。',
-    expanded: false,
-    checkFn: checkDb
-  },
-  {
-    title: '正在与车辆控制系统通信',
+    title: '正在检测小车系统连接',
     status: 'pending',
-    details: '解决方案：请检查巡检车IP与端口配置是否正确。',
+    details: '解决方案：请检查远程后端服务是否可用。',
     expanded: false,
     checkFn: checkAgv
   },
@@ -129,6 +130,20 @@ const checkItems = reactive([
     details: '解决方案：请检查摄像头IP及账号密码是否正确。',
     expanded: false,
     checkFn: checkCam
+  },
+  {
+    title: '正在检测云端系统连接',
+    status: 'pending',
+    details: '解决方案：请检查本地后端服务是否启动。',
+    expanded: false,
+    checkFn: async () => {
+      try {
+        await getSysConfigs()
+        return Promise.resolve()
+      } catch (error) {
+        return Promise.reject(error)
+      }
+    }
   }
 ])
 
@@ -197,6 +212,16 @@ const startCheck = async () => {
 // 进入系统
 const enterSystem = () => {
   router.push('/index')
+}
+
+// 进入云端系统
+const enterCloudSystem = () => {
+  router.push('/cloudSystem')
+}
+
+// 进入云端系统测试
+const enterCloudTest = () => {
+  router.push('/cloudTest')
 }
 
 // 关闭设置弹窗
@@ -364,6 +389,22 @@ onMounted(() => {
     display: flex;
     gap: 20px;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    
+    .el-button {
+      min-width: 140px;
+      height: 50px;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+    }
   }
 }
 

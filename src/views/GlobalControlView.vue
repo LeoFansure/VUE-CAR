@@ -11,8 +11,8 @@ import { checkFs, checkDb, checkAgv, checkCam } from '@/api/system'
 import { listTask, startTask as startTaskApi, endTask as endTaskApi, uploadTask } from '@/api/task'
 // 导入故障管理API
 import { listFlaw } from '@/api/flaw'
-// 导入WebRTC视频流工具
-import { playVideoStream, stopVideoStream as stopWebRTCStream, switchVideoStream } from '@/utils/webrtc'
+// 导入摄像头API - 使用与 TaskExecuteView 相同的 API
+import { deviceList } from '@/api/camera'
 
 const router = useRouter()
 
@@ -36,26 +36,26 @@ const flawList = ref([])
 // 控制状态
 const isConnected = ref(true)
 const isTaskRunning = ref(false)
-const currentCamera = ref(1)
-const audioEnabled = ref(false)
 
-// 摄像头相关
-const videoRef = ref(null)
-const isVideoPlaying = ref(false)
-const videoStream = ref(null)
+// 视频播放相关 - 按照 TaskExecuteView 的模式
+const cameraList = ref([])
+const currentCamera = ref(null)
+const playerInstance = ref(null)
 const videoContainerId = 'video-container'
-const audioContainerId = 'audio-container'
+
+// 本地摄像头调试相关
+const localVideoRef = ref(null)
+const isLocalVideoPaused = ref(false)
+const isLocalVideoActive = ref(false)
 
 // 加载状态
 const loading = ref({
   system: false,
   agv: false,
   task: false,
-  flaw: false
+  flaw: false,
+  camera: false,
 })
-
-const localVideoRef = ref(null)
-const isLocalVideoPaused = ref(false)
 
 // 获取任务状态类型
 const getTaskStatusType = (status) => {
@@ -156,6 +156,73 @@ const getFlawList = async () => {
   }
 }
 
+// 获取摄像头列表 - 按照 TaskExecuteView 的模式
+const loadCameraList = async () => {
+  loading.value.camera = true
+  try {
+    const res = await deviceList()
+    const cameraData = res.data?.items // 使用正确的数据路径
+    if (cameraData) {
+      cameraList.value = cameraData
+      if (cameraData.length > 0) {
+        currentCamera.value = cameraData[0]
+      }
+    }
+  } catch (error) {
+    ElMessage.error('加载摄像头列表失败')
+  } finally {
+    loading.value.camera = false
+  }
+}
+
+// 构建 FLV URL - 按照 TaskExecuteView 的模式
+const getFlvUrl = (camera) => {
+  if (!camera || !camera.id) return ''
+  return `http://192.168.2.57/webrtc-api/live/${camera.id}_01.flv`
+}
+
+// 播放视频 - 按照 TaskExecuteView 的模式
+const playVideo = (camera) => {
+  if (!camera || !camera.id) {
+    ElMessage.warning('请选择一个有效的摄像头')
+    return
+  }
+
+  // 停止当前播放
+  stopVideo()
+
+  currentCamera.value = camera
+  const videoUrl = getFlvUrl(camera)
+  
+  try {
+    playerInstance.value = new EasyPlayer.EasyPlayer(videoContainerId, {
+      decode: 'mse', // 或者 'wasm'
+      videoUrl: videoUrl,
+      live: true,
+      debug: false,
+      autoplay: true,
+    })
+    console.log(`正在播放: ${videoUrl}`)
+  } catch (error) {
+    console.error('创建播放器失败:', error)
+    ElMessage.error('创建播放器失败')
+  }
+}
+
+// 停止视频
+const stopVideo = () => {
+  if (playerInstance.value) {
+    playerInstance.value.destroy()
+    playerInstance.value = null
+    console.log('播放器已停止')
+  }
+}
+
+// 切换摄像头
+const switchCamera = (camera) => {
+  playVideo(camera)
+}
+
 // 刷新所有数据
 const refreshAllData = async () => {
   console.log('刷新所有数据')
@@ -163,7 +230,8 @@ const refreshAllData = async () => {
     getSystemStatus(),
     getAgvStatus(),
     getCurrentTask(),
-    getFlawList()
+    getFlawList(),
+    loadCameraList(),
   ])
 }
 
@@ -200,120 +268,6 @@ const controlAgv = async (action) => {
   }
 }
 
-// 切换摄像头
-const switchCamera = async (cameraId) => {
-  try {
-    currentCamera.value = cameraId
-    console.log(`切换到摄像头 ${cameraId}`)
-    
-    // 确保DOM元素存在
-    const videoElement = document.getElementById(videoContainerId)
-    if (!videoElement) {
-      console.warn('视频容器元素不存在，等待DOM渲染')
-      // 延迟执行，等待DOM渲染完成
-      setTimeout(() => switchCamera(cameraId), 500)
-      return
-    }
-    
-    if (isVideoPlaying.value) {
-      // 如果视频正在播放，则切换流
-      await switchVideoStream(videoContainerId, cameraId)
-      ElMessage.success(`已切换到摄像头 ${cameraId}`)
-    } else {
-      // 如果视频未播放，则启动新流
-      await startVideoStream(cameraId)
-    }
-  } catch (error) {
-    console.error('切换摄像头失败:', error)
-    ElMessage.error('切换摄像头失败: ' + error.message)
-  }
-}
-
-// 切换音频
-const toggleAudio = async () => {
-  try {
-    audioEnabled.value = !audioEnabled.value
-    console.log(audioEnabled.value ? '开启音频' : '关闭音频')
-    
-    if (audioEnabled.value) {
-      // 确保音频容器存在
-      const audioElement = document.getElementById(audioContainerId)
-      if (!audioElement) {
-        console.warn('音频容器元素不存在')
-        audioEnabled.value = false
-        ElMessage.error('音频容器初始化失败')
-        return
-      }
-      
-      // 启动音频流 (通道5)
-      await playVideoStream(audioContainerId, 5)
-      ElMessage.success('音频已开启')
-    } else {
-      // 停止音频流
-      stopWebRTCStream(audioContainerId)
-      ElMessage.info('音频已关闭')
-    }
-  } catch (error) {
-    console.error('音频控制失败:', error)
-    audioEnabled.value = false
-    ElMessage.error('音频控制失败: ' + error.message)
-  }
-}
-
-// 启动视频流
-const startVideoStream = async (cameraId) => {
-  try {
-    console.log(`启动摄像头 ${cameraId} 视频流`)
-    
-    // 确保DOM元素存在
-    const videoElement = document.getElementById(videoContainerId)
-    if (!videoElement) {
-      throw new Error('视频容器元素不存在，请确保页面已正确渲染')
-    }
-    
-    // 清空容器内容
-    videoElement.innerHTML = ''
-    
-    // 启动视频流
-    await playVideoStream(videoContainerId, cameraId)
-    isVideoPlaying.value = true
-    ElMessage.success(`摄像头 ${cameraId} 视频流已启动`)
-  } catch (error) {
-    console.error('启动视频流失败:', error)
-    ElMessage.error('启动视频流失败: ' + error.message)
-    isVideoPlaying.value = false
-  }
-}
-
-// 停止视频流
-const stopVideoStream = () => {
-  try {
-    console.log('停止视频流')
-    stopWebRTCStream(videoContainerId)
-    isVideoPlaying.value = false
-    ElMessage.info('视频流已停止')
-  } catch (error) {
-    console.error('停止视频流失败:', error)
-    ElMessage.error('停止视频流失败: ' + error.message)
-  }
-}
-
-// 全屏显示
-const toggleFullscreen = () => {
-  if (videoRef.value) {
-    if (document.fullscreenElement) {
-      document.exitFullscreen()
-    } else {
-      videoRef.value.requestFullscreen()
-    }
-  }
-}
-
-// 截图功能
-const takeScreenshot = () => {
-  ElMessage.success('截图已保存')
-}
-
 // 启动任务
 const startTask = async (taskId) => {
   if (!taskId) {
@@ -325,7 +279,7 @@ const startTask = async (taskId) => {
     console.log('启动任务:', taskId)
     const response = await startTaskApi(taskId)
     if (response.code === 200) {
-  ElMessage.success('任务启动成功')
+      ElMessage.success('任务启动成功')
       // 刷新任务状态
       await getCurrentTask()
     } else {
@@ -348,7 +302,7 @@ const endTask = async (taskId, isAbort = false) => {
     console.log(`${isAbort ? '中止' : '完成'}任务:`, taskId)
     const response = await endTaskApi(taskId, isAbort)
     if (response.code === 200) {
-  ElMessage.success(isAbort ? '任务已中止' : '任务已完成')
+      ElMessage.success(isAbort ? '任务已中止' : '任务已完成')
       // 刷新任务状态
       await getCurrentTask()
     } else {
@@ -371,7 +325,7 @@ const confirmFlaw = async (flawId) => {
     console.log('确认故障:', flawId)
     // 这里需要调用确认故障的API，但接口文档中没有提供
     // 暂时使用模拟成功
-  ElMessage.success('故障已确认')
+    ElMessage.success('故障已确认')
     // 刷新故障列表
     await getFlawList()
   } catch (error) {
@@ -391,7 +345,7 @@ const uploadTaskData = async (taskId) => {
     console.log('上传任务数据:', taskId)
     const response = await uploadTask(taskId)
     if (response.code === 200) {
-  ElMessage.success('数据上传成功')
+      ElMessage.success('数据上传成功')
       // 刷新任务状态
       await getCurrentTask()
     } else {
@@ -408,42 +362,12 @@ const goToPage = (page) => {
   router.push(`/${page}`)
 }
 
-// 视频调试函数
-const debugVideo = () => {
-  console.log('=== 视频调试信息 ===')
-  console.log('当前摄像头:', currentCamera.value)
-  console.log('视频播放状态:', isVideoPlaying.value)
-  console.log('音频开启状态:', audioEnabled.value)
-  
-  // 检查DOM元素
-  const videoElement = document.getElementById(videoContainerId)
-  const audioElement = document.getElementById(audioContainerId)
-  
-  console.log('视频容器元素:', videoElement)
-  console.log('音频容器元素:', audioElement)
-  
-  if (videoElement) {
-    console.log('视频容器innerHTML:', videoElement.innerHTML)
-    console.log('视频容器children:', videoElement.children)
-  }
-  
-  // 检查WebRTC库
-  console.log('ZLMRTCClient可用性:', typeof ZLMRTCClient !== 'undefined')
-  
-  // 检查网络连接
-  console.log('网络状态:', navigator.onLine ? '在线' : '离线')
-  
-  // 尝试ping流媒体服务器
-  fetch('http://192.168.2.57/webrtc-api', { mode: 'no-cors' })
-    .then(() => console.log('流媒体服务器可达'))
-    .catch(error => console.log('流媒体服务器连接失败:', error))
-    
-  ElMessage.info('调试信息已打印到控制台，请查看')
-}
-
 // 本地摄像头测试
 const testLocalCamera = async () => {
   try {
+    // 停止当前播放器
+    stopVideo()
+    
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     const videoElement = document.getElementById(videoContainerId);
     if (videoElement) {
@@ -458,6 +382,7 @@ const testLocalCamera = async () => {
       videoElement.appendChild(localVideo);
       localVideoRef.value = localVideo;
       isLocalVideoPaused.value = false;
+      isLocalVideoActive.value = true;
     }
     ElMessage.success('本地摄像头已开启');
   } catch (err) {
@@ -465,15 +390,40 @@ const testLocalCamera = async () => {
   }
 };
 
+// 切换本地视频暂停/播放
 const togglePauseLocalVideo = () => {
   if (localVideoRef.value) {
     if (localVideoRef.value.paused) {
       localVideoRef.value.play();
       isLocalVideoPaused.value = false;
+      ElMessage.success('本地视频已恢复播放');
     } else {
       localVideoRef.value.pause();
       isLocalVideoPaused.value = true;
+      ElMessage.info('本地视频已暂停');
     }
+  }
+};
+
+// 停止本地视频
+const stopLocalVideo = () => {
+  if (localVideoRef.value) {
+    const stream = localVideoRef.value.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    localVideoRef.value.remove();
+    localVideoRef.value = null;
+    isLocalVideoPaused.value = false;
+    isLocalVideoActive.value = false;
+    
+    // 恢复占位符
+    const videoElement = document.getElementById(videoContainerId);
+    if (videoElement) {
+      videoElement.innerHTML = '';
+    }
+    
+    ElMessage.info('本地摄像头已关闭');
   }
 };
 
@@ -488,25 +438,11 @@ onMounted(() => {
   setTimeout(() => {
     console.log('检查视频容器DOM元素')
     const videoElement = document.getElementById(videoContainerId)
-    const audioElement = document.getElementById(audioContainerId)
     
     if (videoElement) {
       console.log('视频容器元素已就绪:', videoElement)
     } else {
       console.error('视频容器元素未找到:', videoContainerId)
-    }
-    
-    if (audioElement) {
-      console.log('音频容器元素已就绪:', audioElement)
-    } else {
-      console.error('音频容器元素未找到:', audioContainerId)
-    }
-    
-    // 检查ZLMRTCClient是否加载
-    if (typeof ZLMRTCClient !== 'undefined') {
-      console.log('ZLMRTCClient库已加载')
-    } else {
-      console.error('ZLMRTCClient库未加载')
     }
   }, 1000)
   
@@ -529,19 +465,11 @@ onUnmounted(() => {
       window.refreshInterval = null
     }
     
-    // 停止视频流
-    if (isVideoPlaying.value) {
-      stopWebRTCStream(videoContainerId)
-    }
+    // 停止视频播放器
+    stopVideo()
     
-    // 停止音频流
-    if (audioEnabled.value) {
-      stopWebRTCStream(audioContainerId)
-    }
-    
-    // 重置状态
-    isVideoPlaying.value = false
-    audioEnabled.value = false
+    // 停止本地视频流
+    stopLocalVideo()
     
     console.log('资源清理完成')
   } catch (error) {
@@ -556,8 +484,8 @@ onUnmounted(() => {
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-      <h1>全局控制中心</h1>
-      <p>AGV智能巡检系统实时监控与控制</p>
+          <h1>全局控制中心</h1>
+          <p>AGV智能巡检系统实时监控与控制</p>
         </div>
         <div class="action-section">
           <el-button 
@@ -721,27 +649,21 @@ onUnmounted(() => {
           <div class="video-section">
             <h3>摄像头监控</h3>
             <div class="video-container">
-              <div class="video-display" ref="videoRef">
+              <div class="video-display">
                 <!-- 视频容器 -->
-                <div id="video-container" class="video-element"></div>
-                
-                <!-- 音频容器 (隐藏) -->
-                <div id="audio-container" class="audio-element"></div>
+                <div :id="videoContainerId" class="video-element"></div>
                 
                 <!-- 视频占位符 -->
-                <div v-if="!isVideoPlaying && !localVideoRef" class="video-placeholder">
+                <div v-if="!playerInstance && !isLocalVideoActive" class="video-placeholder">
                   <el-icon :size="48"><VideoCamera /></el-icon>
-                  <p>摄像头 {{ currentCamera }} 视频流</p>
-                  <p class="video-status">视频状态: {{ isVideoPlaying ? '播放中' : '已停止' }}</p>
+                  <p>请选择摄像头并点击播放</p>
                 </div>
                 
-                <!-- 视频覆盖层 -->
-                <div v-if="isVideoPlaying && !localVideoRef" class="video-overlay">
-                    <div class="camera-info">
-                      <el-tag type="primary">摄像头 {{ currentCamera }}</el-tag>
-                      <el-tag :type="audioEnabled ? 'success' : 'info'">
-                        {{ audioEnabled ? '音频开启' : '音频关闭' }}
-                      </el-tag>
+                <!-- 本地视频状态提示 -->
+                <div v-if="isLocalVideoActive" class="local-video-status">
+                  <div class="status-overlay">
+                    <el-icon :size="24"><VideoCamera /></el-icon>
+                    <span>本地摄像头 {{ isLocalVideoPaused ? '已暂停' : '运行中' }}</span>
                   </div>
                 </div>
               </div>
@@ -749,25 +671,17 @@ onUnmounted(() => {
               <!-- 视频控制按钮 -->
               <div class="video-controls">
                 <el-button 
-                  :type="isVideoPlaying ? 'danger' : 'success'"
-                  @click="isVideoPlaying ? stopVideoStream() : startVideoStream(currentCamera)"
+                  v-if="!isLocalVideoActive"
+                  :type="playerInstance ? 'danger' : 'success'"
+                  @click="playerInstance ? stopVideo() : playVideo(currentCamera)"
                 >
-                  {{ isVideoPlaying ? '停止' : '播放' }}
+                  {{ playerInstance ? '停止' : '播放' }}
                 </el-button>
-                <el-button @click="toggleFullscreen">
+                <el-button 
+                  v-if="playerInstance && !isLocalVideoActive"
+                  @click="() => playerInstance?.fullscreen()"
+                >
                   全屏
-                </el-button>
-                <el-button @click="takeScreenshot">
-                  截图
-                </el-button>
-                <el-button type="info" @click="debugVideo">
-                  调试
-                </el-button>
-                <el-button type="primary" @click="testLocalCamera">
-                  本地摄像头测试
-                </el-button>
-                <el-button type="warning" @click="togglePauseLocalVideo" v-if="localVideoRef">
-                  {{ isLocalVideoPaused ? '恢复' : '暂停' }}
                 </el-button>
               </div>
             </div>
@@ -807,25 +721,50 @@ onUnmounted(() => {
 
           <!-- 摄像头控制 -->
           <div class="control-section">
-            <h3>摄像头控制</h3>
+            <h3>
+              摄像头控制
+              <el-icon v-if="loading.camera" class="loading-icon"><Loading /></el-icon>
+            </h3>
             <div class="camera-controls">
               <div class="camera-buttons">
                 <el-button 
-                  v-for="i in 4" 
-                  :key="i"
-                  :type="currentCamera === i ? 'primary' : 'default'"
-                  @click="switchCamera(i)"
+                  v-for="camera in cameraList" 
+                  :key="camera.id"
+                  :type="currentCamera?.id === camera.id ? 'primary' : 'default'"
+                  @click="switchCamera(camera)"
                 >
-                  摄像头{{ i }}
+                  {{ camera.name || `摄像头${camera.id}` }}
                 </el-button>
+                <el-empty v-if="!cameraList.length && !loading.camera" description="未找到摄像头设备" :image-size="50" />
               </div>
-              <div class="audio-control">
-                <el-button 
-                  :type="audioEnabled ? 'success' : 'default'"
-                  @click="toggleAudio"
-                >
-                  {{ audioEnabled ? '关闭音频' : '开启音频' }}
-                </el-button>
+              
+              <!-- 本地摄像头调试按钮 -->
+              <div class="local-camera-debug">
+                <h4>本地摄像头调试</h4>
+                <div class="debug-buttons">
+                  <el-button 
+                    type="info" 
+                    @click="testLocalCamera"
+                    :disabled="isLocalVideoActive"
+                  >
+                    <el-icon><VideoCamera /></el-icon>
+                    测试本地摄像头
+                  </el-button>
+                  <el-button 
+                    type="warning" 
+                    @click="togglePauseLocalVideo"
+                    :disabled="!isLocalVideoActive"
+                  >
+                    {{ isLocalVideoPaused ? '恢复播放' : '暂停视频' }}
+                  </el-button>
+                  <el-button 
+                    type="danger" 
+                    @click="stopLocalVideo"
+                    :disabled="!isLocalVideoActive"
+                  >
+                    停止本地视频
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -944,15 +883,15 @@ onUnmounted(() => {
       justify-content: space-between;
       
       .title-section {
-    h1 {
-      font-size: 32px;
-      color: #303133;
-      margin-bottom: 10px;
-    }
-    
-    p {
-      font-size: 16px;
-      color: #909399;
+        h1 {
+          font-size: 32px;
+          color: #303133;
+          margin-bottom: 10px;
+        }
+        
+        p {
+          font-size: 16px;
+          color: #909399;
         }
       }
       
@@ -1040,15 +979,6 @@ onUnmounted(() => {
           z-index: 1;
         }
 
-        .audio-element {
-          width: 0;
-          height: 0;
-          position: absolute;
-          top: -9999px;
-          left: -9999px;
-          z-index: -1;
-        }
-
         .video-placeholder {
           display: flex;
           flex-direction: column;
@@ -1072,22 +1002,27 @@ onUnmounted(() => {
             margin: 5px 0;
             font-size: 14px;
           }
-          
-          .video-status {
-            color: #909399;
-            font-size: 12px;
-          }
         }
 
-          .video-overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-
-            .camera-info {
-              display: flex;
-              gap: 10px;
+        .local-video-status {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 10;
+          
+          .status-overlay {
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            
+            .el-icon {
+              color: #17a2b8;
+            }
           }
         }
       }
@@ -1126,8 +1061,36 @@ onUnmounted(() => {
       flex-wrap: wrap;
     }
     
-    .audio-control {
-      margin-top: 10px;
+    .local-camera-debug {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+      
+      h4 {
+        margin: 0 0 15px 0;
+        color: #495057;
+        font-size: 14px;
+        font-weight: 600;
+        border-left: 3px solid #17a2b8;
+        padding-left: 10px;
+      }
+      
+      .debug-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        
+        .el-button {
+          display: flex;
+          align-items: center;
+          
+          .el-icon {
+            margin-right: 5px;
+          }
+        }
+      }
     }
   }
 
