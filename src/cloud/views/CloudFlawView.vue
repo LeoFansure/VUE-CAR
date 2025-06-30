@@ -352,7 +352,7 @@ const loadFlaws = async () => {
     // 适配后端返回的数据格式
     const flawData = response.data || []
     flawList.value = flawData
-    pagination.total = response.total || flawData.length
+    pagination.total = response.total || 0
   } catch (error) {
     console.error('加载缺陷列表失败:', error)
     ElMessage.error('加载缺陷列表失败')

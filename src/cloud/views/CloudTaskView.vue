@@ -359,7 +359,7 @@ const loadTasks = async () => {
     // 适配后端返回的数据格式
     const taskData = response.data || []
     taskList.value = taskData
-    pagination.total = response.total || taskData.length
+    pagination.total = response.total || 0
   } catch (error) {
     console.error('加载任务列表失败:', error)
     ElMessage.error('加载任务列表失败')
@@ -486,7 +486,11 @@ const handleConfirmFlaw = async (flaw) => {
   try {
     await confirmFlaw(flaw.id)
     ElMessage.success('缺陷确认成功')
-    viewFlaws({ id: flaw.taskId })
+    // 找到当前操作的任务并重新加载其缺陷列表
+    const task = taskList.value.find(t => t.id === flaw.taskId)
+    if (task) {
+      viewFlaws(task)
+    }
   } catch (error) {
     console.error('确认缺陷失败:', error)
     ElMessage.error('确认缺陷失败')
