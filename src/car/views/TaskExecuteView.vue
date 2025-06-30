@@ -175,38 +175,57 @@ const refreshVideo = () => {
 }
 
 // 修改: 完整地实现了"完成巡检"的业务流程
+// src/views/TaskExecuteView.vue -> <script setup>
+
 const endTaskExecution = async () => {
-  isFinishingTask.value = true
+  isFinishingTask.value = true;
   try {
-    // 1. 前置校验: 检查是否所有故障都已确认
-    const checkRes = await checkAllConfirmed(taskId)
-    if (checkRes.code !== 200 || !checkRes.data) {
-      ElMessageBox.alert('尚有疑似故障未确认，请处理完毕后再完成任务。', '操作中断', { type: 'warning' })
-      isFinishingTask.value = false
-      return
+    const checkRes = await checkAllConfirmed(taskId);
+
+    // 如果检查不通过
+    if (checkRes.code !== 200 || (Array.isArray(checkRes.data) && checkRes.data.length > 0)) {
+      try {
+        // 弹出一个带有选项的确认框
+        await ElMessageBox.confirm(
+          '检测到尚有疑似故障未被确认。您希望如何操作？', 
+          '存在未确认故障', 
+          {
+            distinguishCancelAndClose: true,
+            confirmButtonText: '完成任务', // 按钮1
+            cancelButtonText: '继续处理', // 按钮2
+            type: 'warning',
+          }
+        );
+        // 如果用户点击了“强制完成任务”，代码会继续向下执行
+        ElMessage.warning('用户选择强制完成，将继续执行任务完成流程...');
+      } catch (action) {
+        // 如果用户点击了“返回处理故障”或关闭了弹窗
+        if (action === 'cancel') {
+          ElMessage.info('操作已取消，请继续处理故障。');
+          isFinishingTask.value = false;
+          return; // 中断整个流程
+        }
+      }
     }
 
-    // 2. 弹出确认框
-    await ElMessageBox.confirm('确定要完成本次巡检任务吗?', '提示', { type: 'success' })
+    // --- 只有在检查通过，或用户选择“强制完成”后，才会执行到这里 ---
 
-    // 3. 结束任务
-    ElMessage.info('正在结束任务...')
-    await endTask(taskId, false)
-    ElMessage.success('任务已成功结束，准备上传数据...')
+    // 弹出最终的确认框
+    await ElMessageBox.confirm('确定要完成本次巡检任务吗?', '提示', { type: 'success' });
 
-    // 4. 上传数据
-    await uploadTask(taskId)
-    ElMessage.success('任务数据上传成功！即将返回任务列表。')
+    ElMessage.info('正在结束任务...');
+    await endTask(taskId, false);
 
-    // 5. 跳转
-    router.push('/taskView')
+    ElMessage.success('任务已成功结束，准备上传数据...');
+    await uploadTask(taskId);
+
+    ElMessage.success('任务数据上传成功！即将返回任务列表。');
+    router.push('/taskView');
+
   } catch (error) {
-    // catch中捕获的是用户点击取消或API调用失败
-    if (error !== 'cancel') {
-      ElMessage.error('操作失败: ' + (error.message || '未知错误'))
-    }
+    handleApiError(error);
   } finally {
-    isFinishingTask.value = false
+    isFinishingTask.value = false;
   }
 }
 
@@ -275,30 +294,42 @@ const updateFlawList = async () => {
 
 // 新增: 高频轮询实时"新增"的故障，用于主动弹窗
 const pollForNewFlaws = async () => {
-  if (!taskId) return
+  if (!taskId) return;
   try {
-    const res = await liveInfo(taskId)
+    const res = await liveInfo(taskId);
     if (res?.code === 200 && res.data && Array.isArray(res.data)) {
-      res.data.forEach(async newFlaw => { // <--- 将 forEach 改为异步
-        const isExisting = flaws.value.some(f => f.id === newFlaw.id)
-        if (!isExisting && newFlaw.shown === false) {
-          flaws.value.push(newFlaw)
-          showFlawDetail(newFlaw)
-          ElMessage.warning(`检测到新的疑似故障：${newFlaw.flawName}`)
+      res.data.forEach(async (serverFlaw) => {
+        const existingFlawIndex = flaws.value.findIndex(f => f.id === serverFlaw.id);
 
-          // 新增：立即调用 updateFlaw API，将shown 状态更新为 true
-          try {
-            await updateFlaw({ id: newFlaw.id, shown: true })
-          } catch (updateError) {
-            console.error(`Failed to mark flaw ${newFlaw.id} as shown:`, updateError)
+        // 情况一：这是一个全新的故障
+        if (existingFlawIndex === -1) {
+          // 只有当它未被提示过时，才弹窗
+          if (serverFlaw.shown === false) {
+            flaws.value.push(serverFlaw); // 添加到列表中
+            showFlawDetail(serverFlaw);
+            ElMessage.warning(`检测到新的疑似故障：${serverFlaw.flawName}`);
+            // 立即更新后端的 shown 状态
+            try {
+              await updateFlaw({ id: serverFlaw.id, shown: true });
+            } catch (updateError) {
+              console.error(`Failed to mark flaw ${serverFlaw.id} as shown:`, updateError);
+            }
           }
+        } 
+        // 情况二：这是一个已存在的故障，我们需要更新它的状态
+        else {
+          // 为了确保Vue能够检测到深层对象的属性变化，
+          // 最稳妥的方式是创建一个新对象来替换旧对象。
+          const oldFlaw = flaws.value[existingFlawIndex];
+          // 合并新旧数据，确保所有字段都被更新
+          flaws.value[existingFlawIndex] = { ...oldFlaw, ...serverFlaw };
         }
-      })
+      });
     }
   } catch (error) {
     console.error('Polling for new flaws failed:', error);
   }
-}
+};
 
 // 新增：根据故障状态返回CSS类名，以支持三态显示
 const getFlawMarkerClass = (flaw) => {
