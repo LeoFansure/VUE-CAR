@@ -10,6 +10,7 @@ import {
 } from '@element-plus/icons-vue'
 import { formatDateTime } from '../../utils/common'
 import { listTask, getTask, addTask, updateTask, delTask, startTask, uploadTask, preUploadTask } from '../../car/api/task'
+import { importTaskFromCar } from '../../cloud/api/cloud'
 
 const router = useRouter()
 
@@ -349,29 +350,34 @@ const handleUploadTask = async (row) => {
   }
 }
 
-// 确认上传
-const confirmUpload = async () => {
+// 确认上传到云端（假设的，未来可扩展）
+const confirmCloudUpload = async () => {
+  ElMessage.info('云端上传功能待实现');
+}
+
+// 本地上传（新增的）
+const handleLocalUpload = async () => {
   if (!currentTaskId.value) {
-    ElMessage.error('任务ID不存在')
-    return
+    ElMessage.error('任务ID不存在');
+    return;
   }
-  
+
   try {
-    uploadLoading.value = true
-    const res = await uploadTask(currentTaskId.value)
+    uploadLoading.value = true;
+    console.log(currentTaskId.value)
+    const res = await importTaskFromCar(currentTaskId.value); 
     if (res.code === 200) {
-      console.log("我已上传")
-      ElMessage.success('任务数据上传成功')
-      showUploadDialog.value = false
-      loadTaskList() // 刷新列表
+      ElMessage.success('任务数据已成功上传至本地数据库');
+      showUploadDialog.value = false;
+      loadTaskList(); // 刷新列表
     } else {
-      ElMessage.error(res.msg || '任务数据上传失败')
+      ElMessage.error(res.msg || '本地上传失败');
     }
   } catch (error) {
-    console.error('上传任务数据失败', error)
-    ElMessage.error('上传任务数据失败')
+    console.error('本地上传失败', error);
+    ElMessage.error('本地上传失败');
   } finally {
-    uploadLoading.value = false
+    uploadLoading.value = false;
   }
 }
 
@@ -689,8 +695,8 @@ onMounted(() => {
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showUploadDialog = false" :disabled="uploadLoading">关闭</el-button>
-          <el-button type="primary" @click="confirmUpload" :loading="uploadLoading" :disabled="!canUpload">
-            开始上传
+          <el-button type="primary" @click="handleLocalUpload" :loading="uploadLoading" :disabled="!canUpload">
+            本地上传
           </el-button>
         </span>
       </template>

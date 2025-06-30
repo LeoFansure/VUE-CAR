@@ -17,7 +17,7 @@
     <!-- 统计卡片 -->
     <div class="stats-container">
       <el-row :gutter="20">
-        <el-col :span="6">
+        <el-col :span="8">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon config">
@@ -30,7 +30,7 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :span="6">
+        <el-col :span="8">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon task">
@@ -38,25 +38,12 @@
               </div>
               <div class="stat-info">
                 <div class="stat-number">{{ stats.taskCount }}</div>
-                <div class="stat-label">任务总数</div>
+                <div class="stat-label">归档任务总数</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon uploaded">
-                <el-icon><Upload /></el-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ stats.uploadedCount }}</div>
-                <div class="stat-label">已上传任务</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
+        <el-col :span="8">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon flaw">
@@ -120,34 +107,34 @@
       </el-row>
     </div>
 
-    <!-- 最近任务列表 -->
-    <div class="recent-tasks">
+    <!-- 最近归档任务 -->
+    <div class="recent-tasks-container">
       <el-card>
         <template #header>
           <div class="card-header">
-            <span>最近上传的任务</span>
-            <el-button @click="goToTask" type="text">查看全部</el-button>
+            <span>最近归档任务</span>
           </div>
         </template>
         <el-table :data="recentTasks" style="width: 100%">
-          <el-table-column prop="taskCode" label="任务编号" width="120" />
+          <el-table-column prop="taskCode" label="任务编号" width="180" />
           <el-table-column prop="taskName" label="任务名称" />
+          <el-table-column prop="taskTrip" label="任务距离(米)" width="120" />
           <el-table-column prop="creator" label="创建人" width="100" />
-          <el-table-column prop="taskStatus" label="状态" width="100">
+          <el-table-column prop="executor" label="执行人" width="100" />
+          <el-table-column prop="execTime" label="执行时间" width="180">
             <template #default="scope">
-              <el-tag :type="getStatusType(scope.row.taskStatus)">
-                {{ scope.row.taskStatus }}
-              </el-tag>
+              {{ formatDate(scope.row.execTime) }}
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="180">
+          <el-table-column prop="endTime" label="完成时间" width="180">
             <template #default="scope">
-              {{ formatDate(scope.row.createTime) }}
+              {{ formatDate(scope.row.endTime) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120">
+          <el-table-column prop="round" label="巡视轮次" width="100" />
+          <el-table-column label="操作" width="120" fixed="right">
             <template #default="scope">
-              <el-button @click="viewTaskDetail(scope.row)" type="text" size="small">
+              <el-button @click="viewTaskDetail(scope.row)" type="primary" size="small">
                 查看详情
               </el-button>
             </template>
@@ -176,7 +163,6 @@ const router = useRouter()
 const stats = ref({
   configCount: 0,
   taskCount: 0,
-  uploadedCount: 0,
   flawCount: 0
 })
 
@@ -185,24 +171,20 @@ const recentTasks = ref([])
 // 获取统计数据
 const loadStats = async () => {
   try {
-    const [configs, tasks, flaws] = await Promise.all([
+    const [configRes, taskRes, flawRes] = await Promise.all([
       getSysConfigs(),
       getTasks(),
       getFlaws()
     ])
     
-    // 适配后端返回的数据格式
-    const configData = configs.data || []
-    const taskData = tasks.data || []
-    const flawData = flaws.data || []
-    
-    stats.value.configCount = configData.length
-    stats.value.taskCount = taskData.length
-    stats.value.uploadedCount = taskData.filter(t => t.uploaded).length
-    stats.value.flawCount = flawData.length
-    
-    // 获取最近的任务
-    recentTasks.value = taskData.slice(0, 5)
+    if (configRes.code === 200) stats.value.configCount = configRes.data.length
+    if (taskRes.code === 200) {
+      stats.value.taskCount = taskRes.data.length
+      recentTasks.value = taskRes.data
+        .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+        .slice(0, 5)
+    }
+    if (flawRes.code === 200) stats.value.flawCount = flawRes.data.length
   } catch (error) {
     console.error('加载统计数据失败:', error)
     ElMessage.error('加载统计数据失败')
@@ -222,8 +204,9 @@ const getStatusType = (status) => {
 
 // 格式化日期
 const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('zh-CN')
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleString();
 }
 
 // 导航方法
@@ -244,10 +227,7 @@ const goToFlaw = () => {
 }
 
 const viewTaskDetail = (task) => {
-  router.push({
-    path: '/cloudTask',
-    query: { taskId: task.id }
-  })
+  router.push({ path: `/cloud/task/detail/${task.id}` })
 }
 
 // 生命周期
@@ -388,7 +368,7 @@ onMounted(() => {
   flex: 1;
 }
 
-.recent-tasks {
+.recent-tasks-container {
   margin-bottom: 20px;
 }
 

@@ -135,4 +135,12 @@ export const confirmFlaw = (id) => {
     url: `/api/cloud/flaw/${id}/confirm`,
     method: 'post'
   })
+}
+
+// 从车载系统导入任务数据
+export const importTaskFromCar = (taskId) => {
+  return cloudRequest({
+    url: `/api/cloud/import/task/${taskId}`,
+    method: 'post'
+  })
 } 
