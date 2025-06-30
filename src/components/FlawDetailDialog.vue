@@ -50,9 +50,17 @@
           :model="flawStore.form"
           label-width="100px"
         >
-          <el-form-item label="确认故障" prop="confirmed">
-            <el-switch v-model="flawStore.form.confirmed" />
+          <el-form-item label="故障状态" prop="confirmed">
+            <el-select
+              v-model="flawStore.form.confirmed"
+              placeholder="请确认故障状态"
+              style="width: 100%;"
+            >
+              <el-option label="故障属实 (确认为故障)" :value="true" />
+              <el-option label="不是故障 (确认为误报)" :value="false" />
+            </el-select>
           </el-form-item>
+
           <el-form-item label="补充说明" prop="remark">
             <el-input
               v-model="flawStore.form.remark"
@@ -80,30 +88,27 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import { updateFlaw } from '../car/api/flaw'
-import { formatDateTime } from '../utils/common'
-import { useFlawStore } from '../stores/flaw'
+import { updateFlaw } from '@/api/flaw'
+import { formatDateTime } from '@/utils/common'
+import { useFlawStore } from '@/stores/flaw'
 
 const emit = defineEmits(['saved'])
 const formRef = ref(null)
 const flawStore = useFlawStore()
-const { setVisible, setForm, setSaving } = flawStore
+// 修改: 导入 resetForm 以便在关闭时调用
+const { setVisible, setForm, setSaving, resetForm } = flawStore
 
-// --- 新增: 定义服务器基础地址 ---
 const SERVER_BASE_URL = 'http://192.168.2.57/prod-api/file'
 
-// --- 新增: 用于生成完整图片URL的计算属性 ---
 const fullImageUrl = computed(() => {
   const flaw = flawStore.flaw
   if (flaw && flaw.flawImageUrl) {
-    // 检查URL是否已经是完整的http地址，如果是则直接使用
-    if (flaw.flawImageUrl.startsWith('http')) {
-      return flaw.flawImageUrl
-    }
-    // 如果是相对路径，则拼接服务器基础地址
-    return `${SERVER_BASE_URL}${flaw.flawImageUrl}`
+    if (flaw.flawImageUrl.startsWith('http')) return flaw.flawImageUrl
+    const baseUrl = SERVER_BASE_URL.endsWith('/') ? SERVER_BASE_URL.slice(0, -1) : SERVER_BASE_URL
+    const imageUrl = flaw.flawImageUrl.startsWith('/') ? flaw.flawImageUrl : `/${flaw.flawImageUrl}`
+    return `${baseUrl}${imageUrl}`
   }
-  return '' // 如果没有图片URL，返回空字符串
+  return ''
 })
 
 const formattedCreateTime = computed(() => {
@@ -115,41 +120,62 @@ const formattedCreateTime = computed(() => {
 
 watch(() => flawStore.flaw, (newFlaw) => {
   if (newFlaw) {
-    // console.log('当前故障对象中的图片URL是:', newFlaw.flawImageUrl); // 调试完成后可以删除或注释掉
     setForm({ confirmed: newFlaw.confirmed, remark: newFlaw.remark })
   }
 }, { deep: true })
 
+// 修改: 关闭弹窗时，同时重置表单状态
 const handleClose = () => {
   setVisible(false)
+  resetForm()
 }
 
+// 带有完整“探针”的最终版 handleSave 函数
 const handleSave = async () => {
-  if (!flawStore.flaw) return
-  setSaving(true)
+  console.log('1. "保存"按钮被点击。');
+
+  if (!flawStore.flaw) {
+    console.error('错误：flawStore中没有当前的flaw对象！');
+    return;
+  }
+  console.log('2. flaw对象存在，准备设置saving状态。');
+
+  setSaving(true);
+  console.log('3. saving状态已设置为true，按钮应显示加载中。');
+  
+  const payload = {
+    id: flawStore.flaw.id,
+    confirmed: flawStore.form.confirmed,
+    remark: flawStore.form.remark
+  };
+  console.log('4. 准备发送给后端的数据(payload):', JSON.stringify(payload));
+
   try {
-    const res = await updateFlaw({
-      id: flawStore.flaw.id,
-      confirmed: flawStore.form.confirmed,
-      remark: flawStore.form.remark
-    })
+    console.log('5. 即将调用 updateFlaw API...');
+    const res = await updateFlaw(payload);
+    console.log('6. API调用已完成，收到的响应(res):', res);
+
     if (res.code === 200) {
-      ElMessage.success('保存成功')
-      emit('saved')
-      handleClose()
+      console.log('7. 响应码为200，操作成功。准备关闭弹窗并刷新列表。');
+      ElMessage.success('保存成功');
+      emit('saved');
+      handleClose();
     } else {
-      ElMessage.error('保存失败：' + (res.msg || '未知错误'))
+      console.error('8. 响应码不是200，操作失败。', res);
+      ElMessage.error('保存失败：' + (res.msg || '未知错误'));
     }
   } catch (error) {
-    ElMessage.error('保存失败：' + (error.message || '网络错误'))
+    console.error('9. API调用时捕获到异常(error):', error);
+    ElMessage.error('保存失败：' + (error.message || '网络错误'));
   } finally {
-    setSaving(false)
+    console.log('10. 执行finally块，取消按钮加载状态。');
+    setSaving(false);
   }
 }
 </script>
 
 <style lang="scss" scoped>
-/* 您的样式代码保持不变 */
+/* 您的样式代码 */
 .flaw-detail {
   .flaw-image {
     margin-bottom: 20px;
@@ -197,7 +223,6 @@ const handleSave = async () => {
     }
   }
 }
-
 .dialog-footer {
   text-align: center;
   .el-button {

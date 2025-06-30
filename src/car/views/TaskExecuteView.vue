@@ -12,10 +12,7 @@
             <small style="color: #ccc;">摄像头{{ videoStore.cameraId }} - {{ videoStore.currentCamera?.name || '' }}</small>
           </div>
           <VideoPlayer :flvUrl="videoStore.streamUrl" :cameraName="videoStore.currentCamera?.name || ''" />
-          <div class="audio-stream" style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 4px;">
-            <span>音量：</span>
-            <el-slider v-model="videoStore.volume" :min="0" :max="100" style="width: 120px; display:inline-block;" />
-          </div>
+        
         </div>
         <div class="scale-bar-area">
           <div class="scale-bar-wrapper">
@@ -24,10 +21,12 @@
             <div class="scale-bar">
               <div class="scale-bar-progress" :style="{ width: progress + '%' }"></div>
             </div>
-            <div v-for="flaw in flaws" :key="flaw.id" class="scale-bar-item" 
-                 :class="flaw.confirmed ? 'scale-bar-flaw' : 'scale-bar-flaw unconfirmed'" 
-                 :style="{ left: (flaw.flawDistance / taskInfo.taskTrip * 100) + '%' }" 
-                 :title="flaw.flawName" @click="showFlawDetail(flaw)">📍</div>
+            <div v-for="flaw in flaws" 
+     :key="flaw.id" 
+     class="scale-bar-item" 
+     :class="getFlawMarkerClass(flaw)" :style="{ left: (flaw.flawDistance / taskInfo.taskTrip * 100) + '%' }" 
+     :title="flaw.flawName" 
+     @click="showFlawDetail(flaw)">📍</div>
             <div class="scale-bar-item scale-bar-agv" :style="{ left: progress + '%' }" title="当前位置">🚛</div>
           </div>
         </div>
@@ -154,7 +153,8 @@ const isFinishingTask = ref(false) // 新增: 用于完成按钮的loading状态
 // --- 计算属性 ---
 const flawCount = computed(() => flaws.value.length)
 const confirmedFlawCount = computed(() => flaws.value.filter(f => f.confirmed).length)
-const unconfirmedFlawCount = computed(() => flaws.value.filter(f => !f.confirmed).length)
+// 将 !f.confirmed 修改为 f.confirmed === null，使其逻辑与 TaskDetailView 一致
+const unconfirmedFlawCount = computed(() => flaws.value.filter(f => f.confirmed === null).length)
 
 // --- 方法定义 ---
 
@@ -298,6 +298,17 @@ const pollForNewFlaws = async () => {
   } catch (error) {
     console.error('Polling for new flaws failed:', error);
   }
+}
+
+// 新增：根据故障状态返回CSS类名，以支持三态显示
+const getFlawMarkerClass = (flaw) => {
+  if (flaw.confirmed === true) {
+    return 'scale-bar-flaw confirmed' // 已确认 (红色)
+  }
+  if (flaw.confirmed === false) {
+    return 'scale-bar-flaw false-alarm' // 误报 (灰色)
+  }
+  return 'scale-bar-flaw unconfirmed' // 疑似 (橙色)
 }
 
 const updateAGVStatus = async () => {
