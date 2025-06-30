@@ -8,8 +8,8 @@ import {
   VideoCamera, 
   Loading 
 } from '@element-plus/icons-vue'
-import { formatDateTime } from '@/utils/common'
-import { listTask, getTask, addTask, updateTask, delTask, startTask, uploadTask, preUploadTask } from '@/api/task'
+import { formatDateTime } from '../../utils/common'
+import { listTask, getTask, addTask, updateTask, delTask, startTask, uploadTask, preUploadTask } from '../../car/api/task'
 
 const router = useRouter()
 

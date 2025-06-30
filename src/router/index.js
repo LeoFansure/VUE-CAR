@@ -8,66 +8,69 @@ const router = createRouter({
       path: '/',
       redirect: '/initView'
     },
-    {
-      path: '/index',
-      name: 'index',
-      component: () => import('../views/Index.vue'),
-    },
-    {
-      path: '/globalControl',
-      name: 'globalControl',
-      component: () => import('../views/GlobalControlView.vue'),
-    },
+    // 公共页面
     {
       path: '/initView',
       name: 'initView',
       component: () => import('../views/InitView.vue'),
     },
+    // 小车系统相关页面
+    {
+      path: '/index',
+      name: 'index',
+      component: () => import('../car/views/Index.vue'),
+    },
+    {
+      path: '/globalControl',
+      name: 'globalControl',
+      component: () => import('../car/views/GlobalControlView.vue'),
+    },
     {
       path: '/taskView',
       name: 'taskView',
-      component: () => import('../views/TaskView.vue'),
+      component: () => import('../car/views/TaskView.vue'),
     },
     {
       path: '/taskDetailView',
       name: 'taskDetailView',
-      component: () => import('../views/TaskDetailView.vue'),
+      component: () => import('../car/views/TaskDetailView.vue'),
     },
     {
       path: '/taskExecuteView',
       name: 'taskExecuteView',
-      component: () => import('../views/TaskExecuteView.vue'),
+      component: () => import('../car/views/TaskExecuteView.vue'),
     },
     {
       path: '/settingsView',
       name: 'settingsView',
-      component: () => import('../views/SettingsView.vue'),
+      component: () => import('../car/views/SettingsView.vue'),
     },
+    // 云端系统相关页面
     {
       path: '/cloudSystem',
       name: 'cloudSystem',
-      component: () => import('../views/CloudSystemView.vue'),
+      component: () => import('../cloud/views/CloudSystemView.vue'),
     },
     {
       path: '/cloudConfig',
       name: 'cloudConfig',
-      component: () => import('../views/CloudConfigView.vue'),
+      component: () => import('../cloud/views/CloudConfigView.vue'),
     },
     {
       path: '/cloudTask',
       name: 'cloudTask',
-      component: () => import('../views/CloudTaskView.vue'),
+      component: () => import('../cloud/views/CloudTaskView.vue'),
     },
     {
       path: '/cloudFlaw',
       name: 'cloudFlaw',
-      component: () => import('../views/CloudFlawView.vue'),
+      component: () => import('../cloud/views/CloudFlawView.vue'),
     },
     {
       path: '/cloudTest',
       name: 'cloudTest',
-      component: () => import('../views/CloudTestView.vue'),
-    }
+      component: () => import('../cloud/views/CloudTestView.vue'),
+    },
   ],
 })
 

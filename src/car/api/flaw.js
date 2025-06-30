@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '../../car/utils/request'
 
 // 获取缺陷列表
 export function listFlaw(params) {

@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '../../car/utils/request'
 
 // 查询AGV心跳状态
 export function heartbeat() {

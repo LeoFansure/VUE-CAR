@@ -272,9 +272,9 @@ import {
   Check,
   QuestionFilled
 } from '@element-plus/icons-vue'
-import { formatDateTime } from '@/utils/common'
-import { getTask, listTask } from '@/api/task'
-import { listFlaw, updateFlaw, checkAllConfirmed } from '@/api/flaw'
+import { formatDateTime } from '../../utils/common'
+import { getTask, listTask } from '../../car/api/task'
+import { listFlaw, updateFlaw, checkAllConfirmed } from '../../car/api/flaw'
 
 const route = useRoute()
 const router = useRouter()

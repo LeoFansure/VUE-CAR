@@ -122,15 +122,15 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { useFlawStore } from '@/stores/flaw'
-import { useVideoStore } from '@/stores/video'
+import { useFlawStore } from '../../stores/flaw'
+import { useVideoStore } from '../../stores/video'
 // 修改: 导入新增的API函数
-import { getTask, endTask, uploadTask } from '@/api/task'
-import { listFlaw, liveInfo, checkAllConfirmed } from '@/api/flaw'
-import { heartbeat, agvForward, agvStop } from '@/api/agv'
-import { deviceList } from '@/api/camera'
-import VideoPlayer from '@/components/VideoPlayer.vue'
-import FlawDetailDialog from '@/components/FlawDetailDialog.vue'
+import { getTask, endTask, uploadTask } from '../../car/api/task'
+import { listFlaw, liveInfo, checkAllConfirmed } from '../../car/api/flaw'
+import { heartbeat, agvForward, agvStop } from '../../car/api/agv'
+import { deviceList } from '../../car/api/camera'
+import VideoPlayer from '../../components/VideoPlayer.vue'
+import FlawDetailDialog from '../../components/FlawDetailDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -174,7 +174,7 @@ const refreshVideo = () => {
   }
 }
 
-// 修改: 完整地实现了“完成巡检”的业务流程
+// 修改: 完整地实现了"完成巡检"的业务流程
 const endTaskExecution = async () => {
   isFinishingTask.value = true
   try {
@@ -273,7 +273,7 @@ const updateFlawList = async () => {
   
 }
 
-// 新增: 高频轮询实时“新增”的故障，用于主动弹窗
+// 新增: 高频轮询实时"新增"的故障，用于主动弹窗
 const pollForNewFlaws = async () => {
   if (!taskId) return
   try {

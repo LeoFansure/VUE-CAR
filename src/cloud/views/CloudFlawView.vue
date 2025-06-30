@@ -268,7 +268,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Back, Plus, Search, Refresh } from '@element-plus/icons-vue'
-import { getFlaws, createFlaw, updateFlaw, deleteFlaw as deleteFlawApi, confirmFlaw, getFlawById } from '@/api/cloud'
+import { getFlaws, createFlaw, updateFlaw, deleteFlaw as deleteFlawApi, confirmFlaw, getFlawById } from '../../cloud/api/cloud'
 
 const router = useRouter()
 const route = useRoute()

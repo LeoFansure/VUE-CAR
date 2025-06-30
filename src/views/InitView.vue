@@ -98,9 +98,9 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading, Check, Close, Setting, Monitor } from '@element-plus/icons-vue'
-import { checkFs, checkAgv, checkCam } from '@/api/system'
-import { getSysConfigs } from '@/api/cloud'
-import SettingsView from './SettingsView.vue'
+import { checkFs, checkDb, checkAgv, checkCam } from '../car/api/system'
+import { getSysConfigs } from '../cloud/api/cloud'
+import SettingsView from '../car/views/SettingsView.vue'
 
 const router = useRouter()
 
@@ -136,14 +136,7 @@ const checkItems = reactive([
     status: 'pending',
     details: '解决方案：请检查本地后端服务是否启动。',
     expanded: false,
-    checkFn: async () => {
-      try {
-        await getSysConfigs()
-        return Promise.resolve()
-      } catch (error) {
-        return Promise.reject(error)
-      }
-    }
+    checkFn: checkDb
   }
 ])
 

@@ -4,15 +4,15 @@ import { ElButton, ElCard, ElTable, ElTableColumn, ElTag, ElAlert, ElDivider, El
 import { VideoCamera, Setting, Document, TrendCharts, Connection, Warning, CircleCheck, InfoFilled, Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 // 导入AGV控制API
-import { agvForward, agvStop, agvBackward, heartbeat } from '@/api/agv'
+import { agvForward, agvStop, agvBackward, heartbeat } from '../../car/api/agv'
 // 导入系统检查API
-import { checkFs, checkDb, checkAgv, checkCam } from '@/api/system'
+import { checkFs, checkDb, checkAgv, checkCam } from '../../car/api/system'
 // 导入任务管理API
-import { listTask, startTask as startTaskApi, endTask as endTaskApi, uploadTask } from '@/api/task'
+import { listTask, startTask as startTaskApi, endTask as endTaskApi, uploadTask } from '../../car/api/task'
 // 导入故障管理API
-import { listFlaw } from '@/api/flaw'
+import { listFlaw } from '../../car/api/flaw'
 // 导入摄像头API - 使用与 TaskExecuteView 相同的 API
-import { deviceList } from '@/api/camera'
+import { deviceList } from '../../car/api/camera'
 
 const router = useRouter()
 

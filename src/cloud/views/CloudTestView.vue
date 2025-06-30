@@ -121,7 +121,7 @@
 </template>
 
 <script>
-import cloudService from '@/utils/cloudRequest'
+import '../../cloud/utils/cloudRequest'
 
 export default {
   name: 'CloudTestView',
