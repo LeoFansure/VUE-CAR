@@ -2,7 +2,7 @@
   <div class="init-container">
     <div class="header">
       <h1>AGV智能巡检系统</h1>
-      <p class="subtitle">双系统架构 - 小车系统 + 云端管理系统</p>
+      <p class="subtitle">请先完成小车系统自检，确保各项功能正常</p>
     </div>
     
     <div class="check-list">
@@ -50,26 +50,11 @@
         :icon="Setting"
       />
       <el-button 
-        type="success" 
-        size="large"
-        @click="enterSystem"
-        :icon="Monitor"
-      >
-        进入小车系统
-      </el-button>
-      <el-button 
         type="primary" 
         size="large"
-        @click="enterCloudSystem"
+        @click="goTaskView"
       >
-        进入云端系统
-      </el-button>
-      <el-button 
-        type="info" 
-        size="large"
-        @click="enterCloudTest"
-      >
-        云端系统测试
+        进入任务列表
       </el-button>
       <el-button 
         type="warning" 
@@ -97,9 +82,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading, Check, Close, Setting, Monitor } from '@element-plus/icons-vue'
+import { Loading, Check, Close, Setting } from '@element-plus/icons-vue'
 import { checkFs, checkDb, checkAgv, checkCam } from '../car/api/system'
-import { getSysConfigs } from '../cloud/api/cloud'
 import SettingsView from '../car/views/SettingsView.vue'
 
 const router = useRouter()
@@ -108,35 +92,35 @@ const router = useRouter()
 const showSettings = ref(false)
 const isChecking = ref(false)
 
-// 检查项配置
+// 检查项配置（仅小车系统相关）
 const checkItems = reactive([
   {
-    title: '正在检查系统文件完整性',
+    title: '检查文件系统可用性',
     status: 'pending',
-    details: '解决方案：请重新安装本系统。',
+    details: '请确保小车本地文件系统可用。',
     expanded: false,
     checkFn: checkFs
   },
   {
-    title: '正在检测小车系统连接',
+    title: '检查数据库连接',
     status: 'pending',
-    details: '解决方案：请检查远程后端服务是否可用。',
+    details: '请确保小车本地数据库服务已启动。',
+    expanded: false,
+    checkFn: checkDb
+  },
+  {
+    title: '检查AGV连接',
+    status: 'pending',
+    details: '请检查小车AGV硬件连接是否正常。',
     expanded: false,
     checkFn: checkAgv
   },
   {
-    title: '正在检测摄像头通道状态',
+    title: '检查摄像头连接',
     status: 'pending',
-    details: '解决方案：请检查摄像头IP及账号密码是否正确。',
+    details: '请检查小车摄像头设备及网络连接。',
     expanded: false,
     checkFn: checkCam
-  },
-  {
-    title: '正在检测云端系统连接',
-    status: 'pending',
-    details: '解决方案：请检查本地后端服务是否启动。',
-    expanded: false,
-    checkFn: checkDb
   }
 ])
 
@@ -196,25 +180,15 @@ const startCheck = async () => {
   
   // 检查完成提示
   if (allChecksPassed.value) {
-    ElMessage.success('系统检查完成，所有组件正常运行')
+    ElMessage.success('系统检查完成，所有小车组件正常运行')
   } else {
     ElMessage.warning('系统检查完成，发现异常项目，请查看详情')
   }
 }
 
-// 进入系统
-const enterSystem = () => {
-  router.push('/index')
-}
-
-// 进入云端系统
-const enterCloudSystem = () => {
-  router.push('/cloudSystem')
-}
-
-// 进入云端系统测试
-const enterCloudTest = () => {
-  router.push('/cloudTest')
+// 进入任务列表
+const goTaskView = () => {
+  router.push({ name: 'taskView' })
 }
 
 // 关闭设置弹窗

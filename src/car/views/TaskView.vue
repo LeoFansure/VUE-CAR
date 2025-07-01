@@ -446,10 +446,22 @@ const handleCloseDialog = () => {
 onMounted(() => {
   loadTaskList()
 })
+
+const goCloudSystem = () => {
+  router.push({ name: 'cloudSystem' })
+}
+
+const goInitView = () => {
+  router.push({ name: 'initView' })
+}
 </script>
 
 <template>
   <div class="task-view-container">
+    <div class="task-view-header">
+      <el-button type="primary" @click="goCloudSystem">进入云端系统</el-button>
+      <el-button type="info" @click="goInitView">返回系统初始化页面</el-button>
+    </div>
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="breadcrumb">
@@ -830,5 +842,11 @@ onMounted(() => {
       }
     }
   }
+}
+
+.task-view-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 </style>

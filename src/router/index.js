@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import BigScreen from '../views/InitView.vue'
 // import Index from '../views/Index.vue'
 
 const router = createRouter({
@@ -6,7 +7,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/initView'
+      name: 'bigScreen',
+      component: BigScreen
     },
     // 公共页面
     {
