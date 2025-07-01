@@ -61,40 +61,28 @@
         <el-table-column prop="taskTrip" label="任务距离" width="100" />
         <el-table-column prop="creator" label="创建人" width="100" />
         <el-table-column prop="executor" label="执行人" width="100" />
-        <el-table-column prop="taskStatus" label="任务状态" width="100">
-          <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.taskStatus)">
-              {{ scope.row.taskStatus }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="round" label="巡视轮次" width="100" />
-        <el-table-column prop="uploaded" label="上传状态" width="100">
-          <template #default="scope">
-            <el-tag :type="scope.row.uploaded ? 'success' : 'warning'">
-              {{ scope.row.uploaded ? '已上传' : '未上传' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180">
           <template #default="scope">
             {{ formatDate(scope.row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="scope">
-            <el-button @click="viewTaskDetail(scope.row)" type="primary" size="small">
-              查看详情
-            </el-button>
-            <el-button @click="editTask(scope.row)" type="warning" size="small">
-              编辑
-            </el-button>
-            <el-button @click="viewFlaws(scope.row)" type="info" size="small">
-              查看缺陷
-            </el-button>
-            <el-button @click="handleDeleteTask(scope.row)" type="danger" size="small">
-              删除
-            </el-button>
+            <div style="display: flex; gap: 8px;">
+              <el-button @click="viewTaskDetail(scope.row)" type="primary" size="small">
+                查看详情
+              </el-button>
+              <el-button @click="editTask(scope.row)" type="warning" size="small">
+                编辑
+              </el-button>
+              <el-button @click="viewFlaws(scope.row)" type="info" size="small">
+                查看缺陷
+              </el-button>
+              <el-button @click="handleDeleteTask(scope.row)" type="danger" size="small">
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -462,8 +450,10 @@ const submitTask = async () => {
 
 // 查看任务详情
 const viewTaskDetail = (task) => {
-  currentTask.value = task
-  taskDetailDialogVisible.value = true
+  router.push({
+    name: 'cloudTaskDetail',
+    params: { id: task.id }
+  })
 }
 
 // 查看缺陷

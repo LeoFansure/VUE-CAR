@@ -54,17 +54,15 @@
     </el-card>
 
     <!-- 缺陷列表 -->
-    <el-card>
-      <el-table :data="flawList" style="width: 100%" v-loading="loading">
+    <el-card style="width: 100%;">
+      <el-table :data="flawList" style="width: 100%; min-width: 1200px;" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="taskId" label="任务ID" width="100" />
+        <el-table-column prop="taskId" label="任务ID" width="80" />
         <el-table-column prop="round" label="轮次" width="80" />
-        <el-table-column prop="flawType" label="缺陷类型" width="120" />
-        <el-table-column prop="flawName" label="缺陷名称" width="150" />
+        <el-table-column prop="flawType" label="缺陷类型" width="140" />
+        <el-table-column prop="flawName" label="缺陷名称" width="180" />
         <el-table-column prop="flawDesc" label="缺陷描述" width="200" show-overflow-tooltip />
         <el-table-column prop="flawDistance" label="距离" width="100" />
-        <el-table-column prop="flawLength" label="长度" width="100" />
-        <el-table-column prop="flawArea" label="面积" width="100" />
         <el-table-column prop="flawlevel" label="缺陷等级" width="100">
           <template #default="scope">
             <el-tag :type="getLevelType(scope.row.flawlevel)">
@@ -72,7 +70,6 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="countNum" label="数量" width="80" />
         <el-table-column prop="confirmed" label="确认状态" width="100">
           <template #default="scope">
             <el-tag :type="scope.row.confirmed ? 'success' : 'warning'">
@@ -87,20 +84,22 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="scope">
-            <el-button @click="viewFlawDetail(scope.row)" type="primary" size="small">
-              查看详情
-            </el-button>
-            <el-button @click="editFlaw(scope.row)" type="warning" size="small">
-              编辑
-            </el-button>
-            <el-button @click="handleConfirmFlaw(scope.row)" type="success" size="small" v-if="!scope.row.confirmed">
-              确认
-            </el-button>
-            <el-button @click="deleteFlaw(scope.row)" type="danger" size="small">
-              删除
-            </el-button>
+            <div style="display: flex; gap: 5px;">
+              <el-button @click="viewFlawDetail(scope.row)" type="primary" size="small">
+                查看详情
+              </el-button>
+              <el-button @click="editFlaw(scope.row)" type="warning" size="small">
+                编辑
+              </el-button>
+              <el-button @click="handleConfirmFlaw(scope.row)" type="success" size="small" v-if="!scope.row.confirmed">
+                确认
+              </el-button>
+              <el-button @click="deleteFlaw(scope.row)" type="danger" size="small">
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -172,16 +171,6 @@
               <el-input-number v-model="flawForm.flawDistance" :precision="2" placeholder="距离" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="长度" prop="flawLength">
-              <el-input-number v-model="flawForm.flawLength" :precision="2" placeholder="长度" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="面积" prop="flawArea">
-              <el-input-number v-model="flawForm.flawArea" :precision="2" placeholder="面积" />
-            </el-form-item>
-          </el-col>
         </el-row>
         
         <el-row :gutter="20">
@@ -250,6 +239,14 @@
             <el-tag :type="currentFlaw.uploaded ? 'success' : 'warning'">
               {{ currentFlaw.uploaded ? '已上传' : '未上传' }}
             </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="缺陷图片" :span="2">
+            <template v-if="currentFlaw.flawImage || currentFlaw.flawImageUrl">
+              <img :src="getFlawImageUrl(currentFlaw)" alt="缺陷图片" style="max-width: 400px; max-height: 300px; border-radius: 6px; border: 1px solid #eee;" />
+            </template>
+            <template v-else>
+              暂无图片
+            </template>
           </el-descriptions-item>
           <el-descriptions-item label="缺陷描述" :span="2">
             {{ currentFlaw.flawDesc }}
@@ -527,6 +524,18 @@ const formatDate = (dateStr) => {
 // 导航方法
 const backToCloud = () => {
   router.push('/cloudSystem')
+}
+
+// 获取缺陷图片url
+function getFlawImageUrl(flaw) {
+  const baseImageUrl = 'http://localhost:8080/file/';
+  if (flaw.flawImage) {
+    return baseImageUrl + flaw.flawImage.replace(/^\/+/, '');
+  }
+  if (flaw.flawImageUrl) {
+    return baseImageUrl + flaw.flawImageUrl.replace(/^\/+/, '');
+  }
+  return '';
 }
 
 // 生命周期
