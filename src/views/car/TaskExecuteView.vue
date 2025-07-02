@@ -121,15 +121,15 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { useFlawStore } from '../../stores/flaw'
-import { useVideoStore } from '../../stores/video'
+import { useFlawStore } from '@/stores/flaw'
+import { useVideoStore } from '@/stores/video'
 // 修改: 导入新增的API函数
-import { getTask, endTask, uploadTask } from '../../car/api/task'
-import { listFlaw, liveInfo, checkAllConfirmed } from '../../car/api/flaw'
-import { heartbeat, agvForward, agvStop } from '../../car/api/agv'
-import { deviceList } from '../../car/api/camera'
-import VideoPlayer from '../../components/VideoPlayer.vue'
-import FlawDetailDialog from '../../components/FlawDetailDialog.vue'
+import { getTask, endTask, uploadTask } from '@/api/car/task'
+import { listFlaw, liveInfo, checkAllConfirmed } from '@/api/car/flaw'
+import { heartbeat, agvForward, agvStop } from '@/api/car/agv'
+import { deviceList } from '@/api/car/camera'
+import VideoPlayer from '@/components/car/VideoPlayer.vue'
+import FlawDetailDialog from '@/components/car/FlawDetailDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -196,10 +196,10 @@ const endTaskExecution = async () => {
             type: 'warning',
           }
         );
-        // 如果用户点击了“强制完成任务”，代码会继续向下执行
+        // 如果用户点击了"强制完成任务"，代码会继续向下执行
         ElMessage.warning('用户选择强制完成，将继续执行任务完成流程...');
       } catch (action) {
-        // 如果用户点击了“返回处理故障”或关闭了弹窗
+        // 如果用户点击了"返回处理故障"或关闭了弹窗
         if (action === 'cancel') {
           ElMessage.info('操作已取消，请继续处理故障。');
           isFinishingTask.value = false;
@@ -208,7 +208,7 @@ const endTaskExecution = async () => {
       }
     }
 
-    // --- 只有在检查通过，或用户选择“强制完成”后，才会执行到这里 ---
+    // --- 只有在检查通过，或用户选择"强制完成"后，才会执行到这里 ---
 
     // 弹出最终的确认框
     await ElMessageBox.confirm('确定要完成本次巡检任务吗?', '提示', { type: 'success' });

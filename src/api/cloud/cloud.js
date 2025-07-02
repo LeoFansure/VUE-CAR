@@ -1,4 +1,4 @@
-import cloudRequest from '../utils/cloudRequest'
+import cloudRequest from '@/utils/cloudRequest'
 
 // 系统配置相关API
 export const getSysConfigs = () => {

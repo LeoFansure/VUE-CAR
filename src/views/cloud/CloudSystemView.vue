@@ -155,7 +155,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Back, Setting, List, Upload, Warning } from '@element-plus/icons-vue'
-import { getTasks, getSysConfigs, getFlaws } from '../../cloud/api/cloud'
+import { getTasks, getSysConfigs, getFlaws } from '@/api/cloud/cloud'
 
 const router = useRouter()
 

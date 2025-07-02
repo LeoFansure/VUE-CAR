@@ -165,7 +165,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { getSysConfigs, createSysConfig, updateSysConfig, deleteSysConfig } from '../../cloud/api/cloud'
+import { getSysConfigs, createSysConfig, updateSysConfig, deleteSysConfig } from '@/api/cloud/cloud'
 
 // 响应式数据
 const loading = ref(false)

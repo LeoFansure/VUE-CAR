@@ -5,9 +5,9 @@
       <div class="breadcrumb">
         <span>地铁隧道巡线车智能巡检系统</span>
         <el-icon class="breadcrumb-separator"><ArrowRight /></el-icon>
-        <span>云端任务列表</span>
+        <span>任务列表</span>
         <el-icon class="breadcrumb-separator"><ArrowRight /></el-icon>
-        <span>云端任务详情</span>
+        <span>任务详情</span>
       </div>
       <el-button 
         class="back-btn" 
@@ -48,19 +48,19 @@
           <div class="info-list">
             <div class="info-item">
               <div class="info-label"><el-icon><Ticket /></el-icon> 巡视任务编号</div>
-              <div class="info-value">{{ taskDetail.taskCode || '' }}</div>
+              <div class="info-value">{{ taskDetail.taskCode }}</div>
             </div>
             <div class="info-item">
               <div class="info-label"><el-icon><Calendar /></el-icon> 巡视开始时间</div>
-              <div class="info-value">{{ safeFormatDateTime(taskDetail.execTime) }}</div>
+              <div class="info-value">{{ formatDateTime(taskDetail.execTime) }}</div>
             </div>
             <div class="info-item">
               <div class="info-label"><el-icon><Calendar /></el-icon> 巡视结束时间</div>
-              <div class="info-value">{{ safeFormatDateTime(taskDetail.endTime) }}</div>
+              <div class="info-value">{{ formatDateTime(taskDetail.endTime) }}</div>
             </div>
             <div class="info-item">
               <div class="info-label"><el-icon><Location /></el-icon> 巡行路线距离</div>
-              <div class="info-value">{{ taskDetail.taskTrip || '' }} 米</div>
+              <div class="info-value">{{ taskDetail.taskTrip }} 米</div>
             </div>
             <div class="info-item">
               <div class="info-label"><el-icon><Warning /></el-icon> 故障总计</div>
@@ -73,46 +73,6 @@
             <div class="info-item">
               <div class="info-label"><el-icon><QuestionFilled /></el-icon> 疑似故障</div>
               <div class="info-value">{{ getUnconfirmedFlawCount() }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 任务名称</div>
-              <div class="info-value">{{ taskDetail.taskName || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Location /></el-icon> 起始地点</div>
-              <div class="info-value">{{ taskDetail.startPos || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 创建人</div>
-              <div class="info-value">{{ taskDetail.creator || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 执行人</div>
-              <div class="info-value">{{ taskDetail.executor || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 创建时间</div>
-              <div class="info-value">{{ safeFormatDateTime(taskDetail.createTime) }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 任务状态</div>
-              <div class="info-value">{{ taskDetail.taskStatus || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 巡视轮次</div>
-              <div class="info-value">{{ taskDetail.round || '' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 上传状态</div>
-              <div class="info-value">
-                <el-tag :type="taskDetail.uploaded === true || taskDetail.uploaded === 1 || taskDetail.uploaded === 'true' ? 'success' : 'warning'">
-                  {{ taskDetail.uploaded === true || taskDetail.uploaded === 1 || taskDetail.uploaded === 'true' ? '已上传' : '未上传' }}
-                </el-tag>
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 备注</div>
-              <div class="info-value">{{ taskDetail.remark || '' }}</div>
             </div>
           </div>
         </div>
@@ -313,7 +273,8 @@ import {
   QuestionFilled
 } from '@element-plus/icons-vue'
 import { formatDateTime } from '@/utils/common'
-import { getCloudTaskById, getCloudTaskList, getCloudFlawsByTaskId, updateCloudFlaw } from '@/cloud/api/cloudTask'
+import { getTask, listTask } from '@/api/car/task'
+import { listFlaw, updateFlaw, checkAllConfirmed } from '@/api/car/flaw'
 
 const route = useRoute()
 const router = useRouter()
@@ -335,7 +296,7 @@ const showTaskListDialog = ref(false)
 const taskListLoading = ref(false)
 
 // 图片基础地址（根据实际后端配置修改）
-const baseImageUrl = 'http://localhost:8080/file/'
+const baseImageUrl = 'http://192.168.2.57/prod-api/file/'
 
 // 获取已确认故障数量
 const getConfirmedFlawCount = () => {
@@ -366,13 +327,11 @@ const getFlawMarkerClass = (flaw) => {
     }
 }
 
-// 获取完整图片url，优先用 flawImage 字段
+// 获取完整图片url，只用 flawImage 字段
 const getFlawImageUrl = (flaw) => {
   if (flaw.flawImage) {
-    return baseImageUrl + flaw.flawImage.replace(/^\/+/, '')
-  }
-  if (flaw.flawImageUrl) {
-    return baseImageUrl + flaw.flawImageUrl.replace(/^\/+/, '')
+    // 避免重复斜杠
+    return baseImageUrl.replace(/\/$/, '') + '/' + flaw.flawImageUrl.replace(/^\//, '')
   }
   return ''
 }
@@ -414,7 +373,7 @@ const saveFlawInfo = async () => {
       confirmed: currentFlaw.value.confirmed,
       remark: currentFlaw.value.remark
     }
-    await updateCloudFlaw(flawData)
+    await updateFlaw(flawData)
     // 更新本地数据
     const index = flawList.value.findIndex(item => item.id === currentFlaw.value.id)
     if (index !== -1) {
@@ -437,6 +396,7 @@ const saveFlawInfo = async () => {
 const previewImage = (imageUrl) => {
   if (!imageUrl) return
   previewImageUrl.value = imageUrl
+  console.log('当前选中故障 currentFlaw:', imageUrl)
   showImageViewer.value = true
 }
 
@@ -455,7 +415,7 @@ const handleCloseDialog = () => {
 const loadTaskList = async () => {
   try {
     taskListLoading.value = true
-    const response = await getCloudTaskList({ pageNum: 1, pageSize: 1000 })
+    const response = await listTask({ pageNum: 1, pageSize: 1000 })
     if (response.code === 200) {
       taskList.value = response.rows || response.data || []
     }
@@ -475,12 +435,12 @@ const chooseTask = (task) => {
     return
   }
   showTaskListDialog.value = false
-  router.push({ name: 'cloudTaskDetailView', query: { id: task.id } })
+  router.push({ name: 'taskDetailView', query: { id: task.id } })
 }
 
 // 加载任务详情
 const loadTaskDetail = async () => {
-  const taskId = route.params.id
+  const taskId = route.query.id
 
   // 如果没有传入任务 ID，则弹出任务选择窗口
   if (!taskId) {
@@ -490,14 +450,17 @@ const loadTaskDetail = async () => {
   }
 
   try {
-    const { data } = await getCloudTaskById(taskId)
+    const { data } = await getTask(taskId)
     taskDetail.value = data
+    
     // 加载故障列表
     await loadFlawList(taskId)
+    
     // 默认选中第一个故障
     if (flawList.value.length > 0) {
       selectFlaw(flawList.value[0])
     }
+    
   } catch (error) {
     ElMessage.error('获取任务详情失败')
     console.error(error)
@@ -508,9 +471,11 @@ const loadTaskDetail = async () => {
 const loadFlawList = async (taskId) => {
   try {
     tableLoading.value = true
-    const response = await getCloudFlawsByTaskId(taskId)
+    const response = await listFlaw({ pageNum: 1, pageSize: 100 })
     if (response.code === 200) {
-      flawList.value = response.rows || response.data || []
+      // 后端分页结构返回 rows，否则可能直接返回 data
+      const allFlaws = response.rows || response.data || []
+      flawList.value = allFlaws.filter(flaw => flaw.taskId == taskId)
     }
   } catch (error) {
     ElMessage.error('获取故障列表失败')
@@ -522,7 +487,7 @@ const loadFlawList = async (taskId) => {
 
 // 监听路由参数变化，动态加载任务详情
 watch(
-  () => route.params.id,
+  () => route.query.id,
   (newId, oldId) => {
     if (newId && newId !== oldId) {
       loadTaskDetail()
@@ -546,14 +511,6 @@ const onFlawMarkerClick = (flaw) => {
 const onFlawMarkerDblClick = (flaw) => {
   if (clickTimer) clearTimeout(clickTimer)
   openFlawDialog(flaw)
-}
-
-// 健壮的时间格式化函数
-function safeFormatDateTime(val) {
-  if (!val) return '';
-  const date = typeof val === 'string' ? new Date(val.replace(/-/g, '/')) : val;
-  if (isNaN(date)) return val;
-  return date.toLocaleString('zh-CN');
 }
 </script>
 

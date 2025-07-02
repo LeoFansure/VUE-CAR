@@ -83,8 +83,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading, Check, Close, Setting } from '@element-plus/icons-vue'
-import { checkFs, checkDb, checkAgv, checkCam } from '../car/api/system'
-import SettingsView from '../car/views/SettingsView.vue'
+import { checkFs, checkDb, checkAgv, checkCam } from '@/api/car/system'
+import SettingsView from '@/views/car/SettingsView.vue'
 
 const router = useRouter()
 

@@ -204,7 +204,7 @@ import {
   Refresh,
   InfoFilled
 } from '@element-plus/icons-vue'
-import { getConfig, updateConfig, checkFs, checkAgv, checkCam } from '../../car/api/system'
+import { getConfig, updateConfig, checkFs, checkAgv, checkCam } from '@/api/car/system'
 import { useRouter } from 'vue-router'
 
 // Router

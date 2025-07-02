@@ -1,4 +1,4 @@
-import request from '../../car/utils/request'
+import request from '@/utils/request'
 
 // 获取任务列表
 export function listTask(params) {

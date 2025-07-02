@@ -88,9 +88,9 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import { updateFlaw } from '../car/api/flaw'
-import { formatDateTime } from '../utils/common'
-import { useFlawStore } from '../stores/flaw'
+import { updateFlaw } from '@/api/car/flaw'
+import { formatDateTime } from '@/utils/common'
+import { useFlawStore } from '@/stores/flaw'
 
 const emit = defineEmits(['saved'])
 const formRef = ref(null)
@@ -130,7 +130,7 @@ const handleClose = () => {
   resetForm()
 }
 
-// 带有完整“探针”的最终版 handleSave 函数
+// 带有完整"探针"的最终版 handleSave 函数
 const handleSave = async () => {
   console.log('1. "保存"按钮被点击。');
 

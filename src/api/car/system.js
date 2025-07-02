@@ -1,4 +1,4 @@
-import request from '../../car/utils/request'
+import request from '@/utils/request'
 
 // 检查文件系统可用性
 export function checkFs() {

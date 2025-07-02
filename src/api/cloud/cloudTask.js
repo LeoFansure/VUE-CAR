@@ -1,4 +1,4 @@
-import request from '@/cloud/utils/cloudRequest'
+import request from '@/utils/cloudRequest'
 
 // 获取云端任务详情
 export function getCloudTask(id) {

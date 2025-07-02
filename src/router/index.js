@@ -1,82 +1,82 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import BigScreen from '../views/InitView.vue'
-// import Index from '../views/Index.vue'
+import BigScreen from '@/views/index/InitView.vue'
+import Index from '@/views/car/Index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'bigScreen',
+      name: 'BigScreen',
       component: BigScreen
     },
     // 公共页面
     {
       path: '/initView',
       name: 'initView',
-      component: () => import('../views/InitView.vue'),
+      component: () => import('@/views/index/InitView.vue'),
     },
     // 小车系统相关页面
     {
       path: '/index',
       name: 'index',
-      component: () => import('../car/views/Index.vue'),
+      component: () => import('@/views/car/Index.vue'),
     },
     {
       path: '/globalControl',
       name: 'globalControl',
-      component: () => import('../car/views/GlobalControlView.vue'),
+      component: () => import('@/views/car/GlobalControlView.vue'),
     },
     {
       path: '/taskView',
       name: 'taskView',
-      component: () => import('../car/views/TaskView.vue'),
+      component: () => import('@/views/car/TaskView.vue'),
     },
     {
       path: '/taskDetailView',
       name: 'taskDetailView',
-      component: () => import('../car/views/TaskDetailView.vue'),
+      component: () => import('@/views/car/TaskDetailView.vue'),
     },
     {
       path: '/taskExecuteView',
       name: 'taskExecuteView',
-      component: () => import('../car/views/TaskExecuteView.vue'),
+      component: () => import('@/views/car/TaskExecuteView.vue'),
     },
     {
       path: '/settingsView',
       name: 'settingsView',
-      component: () => import('../car/views/SettingsView.vue'),
+      component: () => import('@/views/car/SettingsView.vue'),
     },
     // 云端系统相关页面
     {
       path: '/cloudSystem',
       name: 'cloudSystem',
-      component: () => import('../cloud/views/CloudSystemView.vue'),
+      component: () => import('@/views/cloud/CloudSystemView.vue'),
     },
     {
       path: '/cloudConfig',
       name: 'cloudConfig',
-      component: () => import('../cloud/views/CloudConfigView.vue'),
+      component: () => import('@/views/cloud/CloudConfigView.vue'),
     },
     {
       path: '/cloudTask',
       name: 'cloudTask',
-      component: () => import('../cloud/views/CloudTaskView.vue'),
+      component: () => import('@/views/cloud/CloudTaskView.vue'),
     },
     {
       path: '/cloudFlaw',
       name: 'cloudFlaw',
-      component: () => import('../cloud/views/CloudFlawView.vue'),
+      component: () => import('@/views/cloud/CloudFlawView.vue'),
     },
     {
       path: '/cloudTest',
       name: 'cloudTest',
-      component: () => import('../cloud/views/CloudTestView.vue'),
+      component: () => import('@/views/cloud/CloudTestView.vue'),
     },
     {
       path: '/cloud/task/detail/:id',
       name: 'cloudTaskDetail',
-      component: () => import('../cloud/views/CloudTaskDetailView.vue'),
+      component: () => import('@/views/cloud/CloudTaskDetailView.vue'),
     }
   ],
 })

@@ -20,7 +20,7 @@
 
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Loading, Warning } from '@element-plus/icons-vue'
-import { useVideoStore } from '../stores/video'
+import { useVideoStore } from '@/stores/video'
 
 const props = defineProps({
   flvUrl: {
