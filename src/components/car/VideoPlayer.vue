@@ -1,10 +1,6 @@
 <template>
   <div class="video-player-container">
     <div ref="playerContainer" class="player-container"></div>
-    <div v-if="isLoading" class="loading-overlay">
-      <el-icon class="loading-icon"><Loading /></el-icon>
-      <span>正在加载视频流...</span>
-    </div>
     <div v-if="error" class="error-overlay">
       <el-icon class="error-icon"><Warning /></el-icon>
       <span>{{ error }}</span>
@@ -38,7 +34,7 @@ const { setPlaying, setError } = videoStore
 
 const playerContainer = ref(null)
 const error = ref('')
-const isLoading = ref(true)
+
 let player = null
 
 const handleError = (err) => {
@@ -46,7 +42,7 @@ const handleError = (err) => {
   setError(errorMsg)
   error.value = errorMsg
   setPlaying(false)
-  isLoading.value = false
+  
   console.error("EasyPlayerPro Error:", err)
 }
 
@@ -54,7 +50,7 @@ const handlePlay = () => {
   setError('')
   error.value = ''
   setPlaying(true)
-  isLoading.value = false
+  
 }
 
 // 初始化播放器，现在只在 onMounted 时调用一次
@@ -87,7 +83,7 @@ const destroyPlayer = () => {
 
 const reconnect = () => {
     if(player && props.flvUrl){
-        isLoading.value = true;
+        
         error.value = '';
         player.play(props.flvUrl);
     }
@@ -96,7 +92,7 @@ const reconnect = () => {
 // 修改: watch 的逻辑大大简化
 watch(() => props.flvUrl, (newUrl) => {
   if (player && newUrl) {
-    isLoading.value = true
+    
     error.value = ''
     // 直接调用 play 方法切换视频流，而不是销毁重建
     player.play(newUrl)
@@ -116,9 +112,7 @@ onMounted(() => {
   // 如果初始就有url，则播放
   if (props.flvUrl) {
     player.play(props.flvUrl)
-  } else {
-    isLoading.value = false
-  }
+  } 
 })
 
 onUnmounted(() => {

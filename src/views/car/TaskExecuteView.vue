@@ -54,15 +54,24 @@
                 <el-button type="danger" @click="abortTaskExecution" size="large" class="console-btn">终止巡检</el-button>
               </div>
             </div>
-            <div class="agv-move-switch-bar">
-              <el-switch
-                v-model="agvMoveSwitch"
-                active-text="AGV前进"
-                inactive-text="AGV停止"
-                @change="handleAgvMoveSwitch"
-                class="agv-move-switch"
-              />
-            </div>
+            <div class="agv-move-control-bar">  <el-button-group size="large">
+    <el-button 
+      :type="agvMoveState === 'backward' ? 'primary' : 'default'" 
+      @click="handleAgvMove('backward')">
+      后退
+    </el-button>
+    <el-button 
+      :type="agvMoveState === 'stop' ? 'primary' : 'default'" 
+      @click="handleAgvMove('stop')">
+      停止
+    </el-button>
+    <el-button 
+      :type="agvMoveState === 'forward' ? 'primary' : 'default'" 
+      @click="handleAgvMove('forward')">
+      前进
+    </el-button>
+  </el-button-group>
+</div>
           </div>
         </div>
         <div class="card">
@@ -126,7 +135,7 @@ import { useVideoStore } from '@/stores/video'
 // 修改: 导入新增的API函数
 import { getTask, endTask, uploadTask } from '@/api/car/task'
 import { listFlaw, liveInfo, checkAllConfirmed } from '@/api/car/flaw'
-import { heartbeat, agvForward, agvStop } from '@/api/car/agv'
+import { heartbeat, agvForward, agvStop, agvBackward } from '@/api/car/agv'
 import { deviceList } from '@/api/car/camera'
 import VideoPlayer from '@/components/car/VideoPlayer.vue'
 import FlawDetailDialog from '@/components/car/FlawDetailDialog.vue'
@@ -147,7 +156,7 @@ const currentTime = ref('')
 const currentPosition = ref(0)
 const showConsole = ref(true)
 const showStatus = ref(true)
-const agvMoveSwitch = ref(false)
+const agvMoveState = ref('stop') // 可选值: 'stop', 'forward', 'backward'
 const isFinishingTask = ref(false) // 新增: 用于完成按钮的loading状态
 
 // --- 计算属性 ---
@@ -250,20 +259,38 @@ const abortTaskExecution = async () => {
 
 const updateTime = () => { currentTime.value = new Date().toLocaleString() }
 
-const handleAgvMoveSwitch = async (val) => {
+// 新的AGV移动控制处理函数
+const handleAgvMove = async (command) => {
+  // 如果已经是目标状态，则不执行任何操作，防止重复点击
+  if (agvMoveState.value === command) return;
+
   try {
-    if (val) {
-      await agvForward()
-      ElMessage.success('AGV已启动前进')
-    } else {
-      await agvStop()
-      ElMessage.info('AGV已停止')
+    let apiCall;
+    let successMessage = '';
+
+    if (command === 'forward') {
+      apiCall = agvForward();
+      successMessage = 'AGV已启动前进';
+    } else if (command === 'backward') {
+      apiCall = agvBackward();
+      successMessage = 'AGV已启动后退';
+    } else { // command === 'stop'
+      apiCall = agvStop();
+      successMessage = 'AGV已停止';
     }
+
+    // 等待API调用完成
+    await apiCall;
+
+    // 仅在API调用成功后更新前端UI状态
+    agvMoveState.value = command;
+    ElMessage.success(successMessage);
+
   } catch (error) {
-    ElMessage.error('AGV控制指令发送失败')
-    agvMoveSwitch.value = !val
+    // 如果指令失败，前端状态不改变，并提示用户
+    handleApiError(error, 'AGV控制指令发送失败');
   }
-}
+};
 
 const getFlvUrl = (camera) => {
   if (!camera || !camera.id) return ''
@@ -343,14 +370,16 @@ const getFlawMarkerClass = (flaw) => {
 }
 
 const updateAGVStatus = async () => {
-  const res = await heartbeat()
+  const res = await heartbeat();
   if (res?.code === 200 && res.data) {
-    currentPosition.value = res.data.currentPosition || 0
+    currentPosition.value = res.data.currentPosition || 0;
     if (taskInfo.taskTrip > 0) {
-      progress.value = (currentPosition.value / taskInfo.taskTrip) * 100
+      const calculatedProgress = (currentPosition.value / taskInfo.taskTrip) * 100;
+      // 新增：使用 Math.min() 取计算结果和100之间的较小值
+      progress.value = Math.min(calculatedProgress, 100);
     }
   }
-}
+};
 
 const loadCameraList = async () => {
   try {
@@ -379,12 +408,24 @@ watch(() => videoStore.cameraId, (val) => {
   }
 })
 
-onMounted(() => {
+onMounted(async() => {
   if (!taskId) {
     ElMessage.error('无效的任务ID，即将返回任务列表')
     router.push('/taskView')
     return
   }
+
+  // ▼▼▼ 新增的核心代码 ▼▼▼
+  try {
+    // 页面加载后，立即发送停止指令，以覆盖后端可能下发的启动指令
+    await agvStop(); 
+    console.log('Initial stop command sent to AGV.');
+  } catch (error) {
+    // 即便停止指令失败，也只在控制台记录错误，不中断页面加载
+    console.error('Failed to send initial stop command:', error);
+    handleApiError(error, '发送初始停止指令失败');
+  }
+  // ▲▲▲ 新增的核心代码 ▲▲▲
   loadTaskInfo()
   loadCameraList()
   updateFlawList() // 立即执行一次全量
@@ -716,6 +757,13 @@ body {
 .el-switch.agv-move-switch {
   --el-switch-on-color: #67c23a;
   --el-switch-off-color: #dcdfe6;
+}
+.agv-move-control-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 24px;
+  margin-bottom: 8px;
 }
 
 /* 调整 el-switch 样式以匹配原型 */
