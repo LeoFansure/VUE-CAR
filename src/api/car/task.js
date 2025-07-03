@@ -1,11 +1,17 @@
 import request from '@/utils/request'
 
 // 获取任务列表
-export function listTask(params) {
+export function listTask(params = {}) {
+  // 默认按id倒序
+  const defaultParams = {
+    orderByColumn: 'id',
+    isAsc: 'desc',
+    ...params
+  };
   return request({
     url: '/agv/task/list',
     method: 'get',
-    params
+    params: defaultParams
   })
 }
 
