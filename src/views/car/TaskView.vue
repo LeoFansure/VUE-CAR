@@ -114,7 +114,6 @@ const loadTaskList = async () => {
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize
     }
-    
     const res = await listTask(params)
     if (res.code === 200) {
       taskList.value = res.rows || []
@@ -302,35 +301,6 @@ const handleStartTask = (row) => {
   }).catch(() => {})
 }
 
-// 创建后直接启动任务
-const handleStartTaskAfterCreate = async () => {
-  if (!currentTaskId.value) {
-    ElMessage.error('任务ID不存在')
-    return
-  }
-  
-  try {
-    startLoading.value = true
-    const res = await startTask(currentTaskId.value)
-    if (res.code === 200) {
-      ElMessage.success('任务启动成功')
-      showTaskDialog.value = false
-      // 跳转到执行页面
-      router.push({
-        path: '/taskExecuteView',
-        query: { id: currentTaskId.value }
-      })
-    } else {
-      ElMessage.error(res.msg || '任务启动失败')
-    }
-  } catch (error) {
-    console.error('启动任务失败', error)
-    ElMessage.error('启动任务失败')
-  } finally {
-    startLoading.value = false
-  }
-}
-
 // 处理上传任务
 const handleUploadTask = async (row) => {
   showUploadDialog.value = true
@@ -388,30 +358,23 @@ const handleLocalUpload = async () => {
 // 提交任务表单
 const submitTaskForm = async () => {
   if (!taskFormRef.value) return
-  
   await taskFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
         formLoading.value = true
-        
         const submitData = { ...taskForm }
-        
         // 根据是否编辑调用不同的接口
         const res = isEdit.value
           ? await updateTask(submitData)
           : await addTask(submitData)
-        
         if (res.code === 200) {
           ElMessage.success(isEdit.value ? '修改成功' : '新增成功')
-          
+          // 新增或编辑成功后关闭对话框
+          showTaskDialog.value = false
           if (!isEdit.value) {
             // 新增任务成功，保存任务ID以便启动
             currentTaskId.value = res.data
-          } else {
-            // 编辑成功后关闭对话框
-            showTaskDialog.value = false
           }
-          
           loadTaskList() // 刷新列表
         } else {
           ElMessage.error(res.msg || (isEdit.value ? '修改失败' : '新增失败'))
@@ -688,12 +651,6 @@ const goInitView = () => {
         <span class="dialog-footer">
           <el-button @click="handleCloseDialog" :disabled="formLoading">取消</el-button>
           <el-button type="primary" @click="submitTaskForm" :loading="formLoading">确定</el-button>
-          <el-button 
-            v-if="showStartBtn" 
-            type="success" 
-            @click="handleStartTaskAfterCreate"
-            :loading="startLoading"
-          >启动</el-button>
         </span>
       </template>
     </el-dialog>

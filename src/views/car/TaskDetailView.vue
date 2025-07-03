@@ -47,27 +47,27 @@
           <h2 class="section-title">任务信息</h2>
           <div class="info-list">
             <div class="info-item">
-              <div class="info-label"><el-icon><Ticket /></el-icon> 巡视任务编号</div>
+              <div class="info-label"><el-icon class="ticket"><Ticket /></el-icon> 巡视任务编号</div>
               <div class="info-value">{{ taskDetail.taskCode }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label"><el-icon><Calendar /></el-icon> 巡视开始时间</div>
+              <div class="info-label"><el-icon class="calendar"><Calendar /></el-icon> 巡视开始时间</div>
               <div class="info-value">{{ formatDateTime(taskDetail.execTime) }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label"><el-icon><Calendar /></el-icon> 巡视结束时间</div>
+              <div class="info-label"><el-icon class="calendar"><Calendar /></el-icon> 巡视结束时间</div>
               <div class="info-value">{{ formatDateTime(taskDetail.endTime) }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label"><el-icon><Location /></el-icon> 巡行路线距离</div>
+              <div class="info-label"><el-icon class="location"><Location /></el-icon> 巡行路线距离</div>
               <div class="info-value">{{ taskDetail.taskTrip }} 米</div>
             </div>
             <div class="info-item">
-              <div class="info-label"><el-icon><Warning /></el-icon> 故障总计</div>
+              <div class="info-label"><el-icon class="warning"><Warning /></el-icon> 故障总计</div>
               <div class="info-value">{{ flawList.length }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label"><el-icon><Check /></el-icon> 已确定故障</div>
+              <div class="info-label"><el-icon class="check"><Check /></el-icon> 已确定故障</div>
               <div class="info-value">{{ getConfirmedFlawCount() }}</div>
             </div>
             <div class="info-item">
@@ -682,7 +682,7 @@ const onFlawMarkerDblClick = (flaw) => {
     .progress-bar {
       flex: 1;
       height: 12px;
-      background: #e4e7ed;
+      background: #409EFF;
       border-radius: 6px;
       position: relative;
       margin: 0 16px;
@@ -777,5 +777,23 @@ const onFlawMarkerDblClick = (flaw) => {
   .el-button {
     min-width: 80px;
   }
+}
+
+.task-info-card .info-list .info-item .info-label {
+  width: 140px;
+  color: #909399;
+  display: flex;
+  align-items: center;
+}
+.task-info-card .info-list .info-item .info-label .el-icon {
+  margin-right: 8px;
+}
+.task-info-card .info-list .info-item .info-label .el-icon {
+  &.ticket { color: #409EFF; }
+  &.calendar { color: #67C23A; }
+  &.location { color: #E6A23C; }
+  &.warning { color: #F56C6C; }
+  &.check { color: #67C23A; }
+  &.question { color: #E6A23C; }
 }
 </style>
