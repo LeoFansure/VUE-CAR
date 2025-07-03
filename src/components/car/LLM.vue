@@ -17,15 +17,15 @@ const dialogVisible = computed({
 
 // TODO: 请将下面的 URL 替换为您自己的 Dify Chatbot 地址
 // 您可以从 Dify 应用的发布 -> 嵌入到网站 -> iFrame 中获取
-const difyChatbotUrl = ref('http://localhost/v1')
+const difyChatbotUrl = ref('http://192.168.2.38/chatbot/Z4egdec9zv6EgsA9')
 
 </script>
 
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="AGV智能助手"
-    width="40%"
+    width="500px"
+    top="10vh"
     :modal="false"
     draggable
     class="llm-dialog"
@@ -37,26 +37,23 @@ const difyChatbotUrl = ref('http://localhost/v1')
         allow="microphone"
       ></iframe>
     </div>
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">关闭</el-button>
-      </span>
-    </template>
   </el-dialog>
 </template>
 
 <style scoped>
 .iframe-container {
-  height: 60vh;
-  width: 100%;
+  height: 700px;
+  width: 99%;
 }
 
 .iframe-container iframe {
   height: 100%;
   width: 100%;
+  border-radius: 0 0 var(--el-dialog-border-radius) var(--el-dialog-border-radius);
 }
 
 .llm-dialog :deep(.el-dialog__body) {
   padding: 0;
 }
 </style>
+

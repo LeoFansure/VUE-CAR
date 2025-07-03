@@ -344,6 +344,9 @@ const getFlawMarkerClass = (flaw) => {
 
 const updateAGVStatus = async () => {
   const res = await heartbeat()
+  console.log("agv status")
+  console.log(res)
+
   if (res?.code === 200 && res.data) {
     currentPosition.value = res.data.currentPosition || 0
     if (taskInfo.taskTrip > 0) {
