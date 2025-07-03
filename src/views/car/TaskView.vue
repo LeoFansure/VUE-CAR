@@ -437,15 +437,17 @@ const goInitView = () => {
         <span>任务列表</span>
       </div>
       <div class="header-buttons">
-        <el-button 
-          class="ai-chat-btn"
-          type="primary"
-          circle
-          @click="showLlmDialog = true"
-          title="AI 助手"
-        >
-          <el-icon size="20"><ChatDotRound /></el-icon>
-        </el-button>
+        <div class="ai-chat-wrapper">
+          <el-button 
+            class="ai-chat-btn"
+            type="primary"
+            circle
+            @click="showLlmDialog = true"
+          >
+            <el-icon size="20"><ChatDotRound /></el-icon>
+          </el-button>
+          <div class="ai-tooltip">AI 智能助手</div>
+        </div>
         <el-button 
           class="settings-btn" 
           @click="goToSettings"
@@ -495,7 +497,7 @@ const goInitView = () => {
         :data="taskList" 
         style="width: 100%"
         v-loading="tableLoading"
-        border
+        
       >
         <el-table-column type="index" label="序号" width="55" align="center"></el-table-column>
         <el-table-column prop="taskCode" label="任务编号" min-width="150">
@@ -642,7 +644,7 @@ const goInitView = () => {
           <el-alert
             title="点击下方[启动]按钮后巡线车将开始工作，请确保车辆周围环境安全。"
             type="warning"
-            show-icon
+            show-ic2
             :closable="false"
           />
         </div>
@@ -719,6 +721,55 @@ const goInitView = () => {
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    .ai-chat-wrapper {
+      position: relative;
+      display: inline-block;
+      
+      .ai-chat-btn {
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+        }
+      }
+      
+      .ai-tooltip {
+        position: absolute;
+        bottom: -45px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        transform: translateX(-50%) translateY(10px);
+        z-index: 1000;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-bottom: 6px solid #667eea;
+        }
+      }
+      
+      &:hover .ai-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+      }
     }
 
     .settings-btn {

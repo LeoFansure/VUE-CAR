@@ -1,7 +1,7 @@
 <template>
-  <div class="settings-container">
+  <div class="settings-container" :class="{ 'embedded-container': isEmbedded }">
     <!-- 页面标题和状态 -->
-    <div class="page-header">
+    <div class="page-header" :class="{ 'embedded-header': isEmbedded }">
       <h2>系统配置</h2>
       <div class="header-actions">
         <el-button @click="loadConfig" :loading="loading" size="small">
@@ -462,6 +462,15 @@ defineExpose({
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid #ebeef5;
+    
+    &.embedded-header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      
+      h2 {
+        font-size: 20px;
+      }
+    }
     
     h2 {
       margin: 0;

@@ -70,7 +70,8 @@
       </div>
       <el-dialog
         v-model="showSettings"
-        width="600px"
+        width="700px"
+        top="5vh"
         :before-close="handleCloseSettings"
       >
         <SettingsView :isEmbedded="true" @save="handleSettingsSave" />
