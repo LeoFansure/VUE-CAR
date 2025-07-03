@@ -38,40 +38,47 @@
             <el-switch v-model="showConsole" active-color="#67c23a" inactive-color="#dcdfe6" style="margin-left: 12px;" />
           </div>
           <div class="card-body" v-if="showConsole">
-            <div class="console-grid large">
-              <div class="console-item top-left">
-                <el-button type="primary" @click="refreshVideo" size="large" class="console-btn">刷新监控</el-button>
-              </div>
-              <div class="console-item top-right">
-                <el-select v-model="videoStore.cameraId" class="cam-selector console-btn" style="width:180px;" size="large" placeholder="选择摄像头">
-                  <el-option v-for="cam in videoStore.cameraList" :key="cam.id" :label="cam.name || `摄像头${cam.id}`" :value="cam.id" />
-                </el-select>
-              </div>
-              <div class="console-item bottom-left">
-                <el-button type="success" @click="endTaskExecution" size="large" class="console-btn" :loading="isFinishingTask">完成巡检</el-button>
-              </div>
-              <div class="console-item bottom-right">
-                <el-button type="danger" @click="abortTaskExecution" size="large" class="console-btn">终止巡检</el-button>
-              </div>
+            <div class="console-row">
+              <el-button type="primary" @click="refreshVideo">刷新监控</el-button>
+              <el-button type="success" @click="endTaskExecution" :loading="isFinishingTask">完成巡检</el-button>
+              <el-button type="danger" @click="abortTaskExecution">终止巡检</el-button>
             </div>
-            <div class="agv-move-control-bar">  <el-button-group size="large">
-    <el-button 
-      :type="agvMoveState === 'backward' ? 'primary' : 'default'" 
-      @click="handleAgvMove('backward')">
-      后退
-    </el-button>
-    <el-button 
-      :type="agvMoveState === 'stop' ? 'primary' : 'default'" 
-      @click="handleAgvMove('stop')">
-      停止
-    </el-button>
-    <el-button 
-      :type="agvMoveState === 'forward' ? 'primary' : 'default'" 
-      @click="handleAgvMove('forward')">
-      前进
-    </el-button>
-  </el-button-group>
-</div>
+            <div class="console-row">
+              <el-select v-model="videoStore.cameraId" class="cam-selector" placeholder="选择摄像头" style="width: 140px; margin-right: 12px;">
+                <el-option v-for="cam in videoStore.cameraList" :key="cam.id" :label="cam.name || `摄像头${cam.id}`" :value="cam.id" />
+              </el-select>
+              <el-button-group class="agv-controls" style="box-shadow: none; background: transparent; border: none;">
+                <el-tooltip content="后退" placement="top">
+                  <el-button
+                    circle
+                    :type="agvMoveState === 'backward' ? 'warning' : 'default'"
+                    @click="handleAgvMove('backward')"
+                    style="margin: 0 4px; font-size: 18px; min-width: 36px; height: 36px;"
+                  >
+                    <span class="icon"><<</span>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="停止" placement="top">
+                  <el-button
+                    :type="agvMoveState === 'stop' ? 'danger' : 'default'"
+                    @click="handleAgvMove('stop')"
+                    style="margin: 0 4px; font-size: 18px; border-radius: 12px; min-width: 36px; height: 36px;"
+                  >
+                    <span class="icon">◉</span>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="前进" placement="top">
+                  <el-button
+                    circle
+                    :type="agvMoveState === 'forward' ? 'success' : 'default'"
+                    @click="handleAgvMove('forward')"
+                    style="margin: 0 4px; font-size: 18px; min-width: 36px; height: 36px;"
+                  >
+                    <span class="icon">>></span>
+                  </el-button>
+                </el-tooltip>
+              </el-button-group>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -601,48 +608,58 @@ body {
 .card-body {
     padding: 20px;
 }
-.console-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 16px;
-  height: 160px;
-  position: relative;
+.console-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
-.console-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+.console-row + .console-row {
+    margin-top: 20px;
 }
-.console-item.top-left {
-  grid-row: 1;
-  grid-column: 1;
-  justify-content: flex-start;
+.console-row .el-button {
+    flex: 1;
 }
-.console-item.top-right {
-  grid-row: 1;
-  grid-column: 2;
-  justify-content: flex-end;
+.cam-selector {
+    flex-grow: 0;
+    width: 160px !important;
+    margin-right: 24px;
 }
-.console-item.bottom-left {
-  grid-row: 2;
-  grid-column: 1;
-  justify-content: flex-start;
+.cam-selector .el-select-dropdown__item {
+    padding-left: 18px !important;
 }
-.console-item.bottom-right {
-  grid-row: 2;
-  grid-column: 2;
-  justify-content: flex-end;
+.agv-controls {
+    flex-grow: 1;
+    display: flex;
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    gap: 2px;
+    justify-content: flex-end;
 }
-.el-button[size="large"] {
-  min-width: 110px;
-  font-size: 16px;
-  padding: 12px 0;
+.agv-controls .el-button {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    color: #409eff;
+    border-radius: 22px;
+    font-weight: 600;
+    font-size: 18px;
+    min-width: 60px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s, background 0.2s;
 }
-.el-select[size="large"] .el-input__inner {
-  font-size: 16px;
-  height: 40px;
+.agv-controls .el-button.primary, .agv-controls .el-button:focus, .agv-controls .el-button:hover {
+    background: #409eff;
+    color: #fff;
+    border: none !important;
+}
+.agv-controls .el-button .icon {
+    margin-right: 4px;
+    font-size: 18px;
 }
 .info-item {
     display: flex;
@@ -773,5 +790,14 @@ body {
 :deep(.agv-move-switch .el-switch__label) {
   font-size: 14px; /* 调整字体大小 */
 }
-
+.agv-controls .el-button:hover,
+.agv-controls .el-button:focus {
+  background: #f2f6fc !important; /* 柔和的淡灰色，如需完全透明可改为transparent */
+  color: #409eff !important;
+  box-shadow: 0 2px 12px rgba(64,158,255,0.10);
+  border: none !important;
+}
+.agv-controls .el-button:active {
+  background: #e6f0fa !important;
+}
 </style>
