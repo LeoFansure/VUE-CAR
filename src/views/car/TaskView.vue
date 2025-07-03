@@ -6,15 +6,18 @@ import {
   ArrowRight, 
   Setting, 
   VideoCamera, 
-  Loading 
+  Loading,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import { formatDateTime } from '@/utils/common'
 import { listTask, getTask, addTask, updateTask, delTask, startTask, uploadTask, preUploadTask } from '@/api/car/task'
 import { importTaskFromCar } from '@/api/cloud/cloud'
+import LLM from '@/components/car/LLM.vue'
 
 const router = useRouter()
 
 // 响应式数据
+const showLlmDialog = ref(false)
 const taskList = ref([])
 const tableLoading = ref(false)
 const showTaskDialog = ref(false)
@@ -291,6 +294,7 @@ const handleStartTask = (row) => {
       }
     } catch (error) {
       console.error('启动任务失败', error)
+      console.log("2165489658456856")
       ElMessage.error('启动任务失败')
     } finally {
       startLoading.value = false
@@ -469,12 +473,23 @@ const goInitView = () => {
         <el-icon class="breadcrumb-separator"><ArrowRight /></el-icon>
         <span>任务列表</span>
       </div>
-      <el-button 
-        class="settings-btn" 
-        @click="goToSettings"
-      >
-        <el-icon><Setting /></el-icon>
-      </el-button>
+      <div class="header-buttons">
+        <el-button 
+          class="ai-chat-btn"
+          type="primary"
+          circle
+          @click="showLlmDialog = true"
+          title="AI 助手"
+        >
+          <el-icon size="20"><ChatDotRound /></el-icon>
+        </el-button>
+        <el-button 
+          class="settings-btn" 
+          @click="goToSettings"
+        >
+          <el-icon><Setting /></el-icon>
+        </el-button>
+      </div>
     </div>
 
     <!-- 搜索表单 -->
@@ -713,6 +728,9 @@ const goInitView = () => {
         </span>
       </template>
     </el-dialog>
+
+    <!-- AI 助手对话框 -->
+    <LLM v-model="showLlmDialog" />
   </div>
 </template>
 
@@ -740,6 +758,12 @@ const goInitView = () => {
       }
     }
     
+    .header-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .settings-btn {
       border-radius: 50%;
       padding: 10px;

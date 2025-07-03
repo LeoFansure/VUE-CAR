@@ -71,7 +71,7 @@ const router = createRouter({
     {
       path: '/cloudTest',
       name: 'cloudTest',
-      component: () => import('@/views/cloud/CloudTestView.vue'),
+      // component: () => import('@/views/cloud/CloudTestView.vue'),
     },
     {
       path: '/cloud/task/detail/:id',

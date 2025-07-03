@@ -235,7 +235,7 @@ const configForm = reactive({
   analysisPort: 8081,
   cloudUrl: 'https://cloud.example.com',
   apiKey: 'your-secret-api-key-goes-here',
-  autoSync: true,
+  autoSync: false,
   cam1: 'rtsp://192.168.2.101/stream1',
   username1: 'admin',
   password1: '',

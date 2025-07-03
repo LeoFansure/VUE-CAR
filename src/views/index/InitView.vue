@@ -54,7 +54,7 @@
         size="large"
         @click="goTaskView"
       >
-        进入任务列表
+        进入终端
       </el-button>
       <el-button 
         type="warning" 
@@ -69,8 +69,7 @@
     <!-- 设置弹窗 -->
     <el-dialog 
       v-model="showSettings" 
-      title="系统设置" 
-      width="60%"
+      width="50%"
       :before-close="handleCloseSettings"
     >
       <SettingsView :isEmbedded="true" @save="handleSettingsSave" />
