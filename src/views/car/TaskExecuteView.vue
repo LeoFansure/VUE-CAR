@@ -264,12 +264,12 @@ const abortTaskExecution = async () => {
 }
 
 
-const updateTime = () => { currentTime.value = new Date().toLocaleString() }
+//const updateTime = () => { currentTime.value = new Date().toLocaleString() }
 
 // 新的AGV移动控制处理函数
 const handleAgvMove = async (command) => {
   // 如果已经是目标状态，则不执行任何操作，防止重复点击
-  if (agvMoveState.value === command) return;
+  //if (agvMoveState.value === command) return;
 
   try {
     let apiCall;
@@ -317,6 +317,8 @@ const loadTaskInfo = async () => {
 
 
 const updateFlawList = async () => {
+
+  const response = { code: null, rows: [], data: [] };
   
     if (response.code === 200) {
       // 后端分页结构返回 rows，否则可能直接返回 data
@@ -379,6 +381,7 @@ const getFlawMarkerClass = (flaw) => {
 const updateAGVStatus = async () => {
   const res = await heartbeat()
   if (res?.code === 200 && res.data) {
+    currentTime.value = res.data.sysTime;
     currentPosition.value = res.data.currentPosition || 0;
     if (taskInfo.taskTrip > 0) {
       const calculatedProgress = (currentPosition.value / taskInfo.taskTrip) * 100;
@@ -422,26 +425,16 @@ onMounted(async() => {
     return
   }
 
-  // ▼▼▼ 新增的核心代码 ▼▼▼
-  try {
-    // 页面加载后，立即发送停止指令，以覆盖后端可能下发的启动指令
-    await agvStop(); 
-    console.log('Initial stop command sent to AGV.');
-  } catch (error) {
-    // 即便停止指令失败，也只在控制台记录错误，不中断页面加载
-    console.error('Failed to send initial stop command:', error);
-    handleApiError(error, '发送初始停止指令失败');
-  }
-  // ▲▲▲ 新增的核心代码 ▲▲▲
+  
   loadTaskInfo()
   loadCameraList()
   updateFlawList() // 立即执行一次全量
   updateAGVStatus()
-  updateTime()
+  //updateTime()
   
   // 设置定时轮询
-  pollingIntervals.push(setInterval(updateTime, 1000))
-  pollingIntervals.push(setInterval(updateAGVStatus, 3000))
+ // pollingIntervals.push(setInterval(updateTime, 1000))
+  pollingIntervals.push(setInterval(updateAGVStatus, 1000))
   // 新增: 高频轮询实时故障
   pollingIntervals.push(setInterval(pollForNewFlaws, 3000)) 
   // 修改: 降低全量故障列表的更新频率
