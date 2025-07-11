@@ -15,9 +15,8 @@ const dialogVisible = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-// TODO: 请将下面的 URL 替换为您自己的 Dify Chatbot 地址
-// 您可以从 Dify 应用的发布 -> 嵌入到网站 -> iFrame 中获取
-const difyChatbotUrl = ref('http://192.168.2.38/chatbot/Z4egdec9zv6EgsA9')
+// 使用环境变量中的BASE_API获取Dify Chatbot URL
+const difyChatbotUrl = ref(`${import.meta.env.VITE_BASE_API}`)
 
 </script>
 

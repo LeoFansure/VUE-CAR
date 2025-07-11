@@ -28,6 +28,14 @@
 - **数据中心**: 汇总所有巡检任务的数据，包括巡检日志、拍摄的图片和识别出的故障信息。
 - **故障管理**: 查看、筛选和处理所有设备上报的故障信息，支持对故障进行确认、分类和备注。
 
+### 🤖 LLM智能助手 (LLM Assistant)
+
+- **自然语言交互**: 通过对话形式与系统交互，无需学习复杂的操作界面。
+- **任务自动化**: 通过自然语言描述创建和管理巡检任务。
+- **智能查询**: 快速查询最新缺陷和任务状态信息。
+- **意图识别**: 智能识别用户输入的意图，自动路由到相应的功能模块。
+- **上下文理解**: 保持对话上下文，支持多轮交互和信息补充。
+
 ## 🛠️ 技术栈
 
 - **前端框架**: [Vue 3](https://vuejs.org/)
@@ -38,6 +46,9 @@
 - **HTTP 请求**: [Axios](https://axios-http.com/)
 - **工具库**: [@vueuse/core](https://vueuse.org/)
 - **CSS 预处理器**: [Sass/SCSS](https://sass-lang.com/)
+- **LLM模型**: [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct)
+- **推理框架**: [vLLM](https://github.com/vllm-project/vllm)
+- **LLMOps平台**: [Dify](https://github.com/langgenius/dify)
 
 ## 🚀 快速开始
 
@@ -71,6 +82,72 @@ npm run build
 ```
 
 构建产物将输出到 `dist` 目录。
+
+### 5. LLM服务部署
+
+#### 5.1 部署vLLM服务
+
+```bash
+# 创建并激活Conda环境
+conda create -n vllm python=3.10
+conda activate vllm
+
+# 安装vLLM
+pip install vllm
+
+# 下载Qwen2.5-1.5B-Instruct模型
+mkdir -p models
+cd models
+git lfs install
+git clone https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
+
+# 启动vLLM服务
+```bash
+vllm serve Qwen2.5-1.5B-Instruct
+```
+
+#### 5.2 部署Dify平台
+
+```bash
+# 克隆Dify仓库
+git clone https://github.com/langgenius/dify.git
+cd dify
+
+# 使用Docker Compose启动Dify
+docker-compose up -d
+```
+
+#### 5.3 配置Dify平台
+
+1. 访问Dify Web界面
+2. 注册并登录管理员账号
+3. 创建新应用，选择"对话应用"类型
+4. 在"模型供应商"中添加自定义模型：
+   - 名称：Qwen2.5-1.5B-Instruct
+   - 类型：OpenAI兼容
+   - 接口地址：http://localhost:8000/v1 （根据实际情况变动）
+   - 密钥：（可留空）
+5. 导入AGV助手.yml文件配置工作流
+6. 点击"发布"按钮，选择"嵌入到网站"，获取iframe嵌入src的API
+
+
+#### 5.4 前端集成配置
+
+创建或编辑项目根目录下的`.env`文件：
+
+```
+VITE_BASE_API=http://your-dify-server-url
+```
+
+LLM组件会自动使用此环境变量构建完整的chatbot URL。
+
+## LLM助手使用流程
+1. 在任务管理界面点击"AI助手"按钮，打开LLM对话窗口
+2. 通过自然语言与助手交互，例如：
+   - "帮我执行一个巡检任务，名称是西段隧道巡检，从0米开始，总长3000米，创建人张三，执行人李四"
+   - "查询最新的缺陷对应的任务信息"
+3. 助手会自动识别意图并执行相应操作，返回结果
+4. 对于复杂任务，助手会引导用户提供必要的信息
 
 ## 📁 项目结构
 

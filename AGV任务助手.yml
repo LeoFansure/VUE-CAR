@@ -1,0 +1,2096 @@
+app:
+  description: 智能巡线车任务创建和管理系统
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: AGV任务助手
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: yangyaofei/vllm:0.1.5@3eecf807d9767f40eb757ff70720291aa6055e9e1803893b4c93b61a5d4d4319
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables:
+  - description: 当前任务状态
+    id: 08d94f37-1c1f-42f2-849b-024b453d9cfc
+    name: taskStatus
+    selector:
+    - conversation
+    - taskStatus
+    value: 巡视中
+    value_type: string
+  - description: '任务id，为空，系统自动自增
+
+      '
+    id: 10f22813-13de-40a9-8a01-324fd26a10ce
+    name: id
+    selector:
+    - conversation
+    - id
+    value: 0
+    value_type: number
+  - description: 任务编号
+    id: aa5bb87b-60b6-4aa4-828b-f9b0fb601bb0
+    name: taskCode
+    selector:
+    - conversation
+    - taskCode
+    value: ''
+    value_type: string
+  - description: ''
+    id: 08d28395-319e-449d-b1da-8930516c434a
+    name: Headers
+    selector:
+    - conversation
+    - Headers
+    value: application/json
+    value_type: string
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm-source-answer-target
+      selected: false
+      source: llm
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: if-else
+      id: 1751350653478-source-1751352825356-target
+      selected: false
+      source: '1751350653478'
+      sourceHandle: source
+      target: '1751352825356'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: 1751352825356-true-1751352738844-target
+      selected: false
+      source: '1751352825356'
+      sourceHandle: 'true'
+      target: '1751352738844'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: 1751352825356-false-1751353458886-target
+      selected: false
+      source: '1751352825356'
+      sourceHandle: 'false'
+      target: '1751353458886'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1751353458886-source-1751353649077-target
+      selected: false
+      source: '1751353458886'
+      sourceHandle: source
+      target: '1751353649077'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: tool
+      id: 1751345396969-source-1751354702010-target
+      selected: false
+      source: '1751345396969'
+      sourceHandle: source
+      target: '1751354702010'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: parameter-extractor
+      id: 1751350692717-2-1751350653478-target
+      selected: false
+      source: '1751350692717'
+      sourceHandle: '2'
+      target: '1751350653478'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: question-classifier
+      id: 1751354702010-source-1751350692717-target
+      selected: false
+      source: '1751354702010'
+      sourceHandle: source
+      target: '1751350692717'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: assigner
+        targetType: http-request
+      id: 1751421707660-source-1751420670122-target
+      selected: false
+      source: '1751421707660'
+      sourceHandle: source
+      target: '1751420670122'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: 1751420670122-source-1751423016737-target
+      selected: false
+      source: '1751420670122'
+      sourceHandle: source
+      target: '1751423016737'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: http-request
+      id: 1751477122941-source-1751476265416-target
+      selected: false
+      source: '1751477122941'
+      sourceHandle: source
+      target: '1751476265416'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1751476636196-source-1751477568907-target
+      selected: false
+      source: '1751476636196'
+      sourceHandle: source
+      target: '1751477568907'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: answer
+      id: 1751352738844-source-1751522487388-target
+      selected: false
+      source: '1751352738844'
+      sourceHandle: source
+      target: '1751522487388'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: answer
+        targetType: assigner
+      id: 1751522487388-source-1751421707660-target
+      selected: false
+      source: '1751522487388'
+      sourceHandle: source
+      target: '1751421707660'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: answer
+        targetType: llm
+      id: 1751522618487-source-1751476636196-target
+      selected: false
+      source: '1751522618487'
+      sourceHandle: source
+      target: '1751476636196'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: assigner
+      id: 1751423016737-source-1751549571172-target
+      selected: false
+      source: '1751423016737'
+      sourceHandle: source
+      target: '1751549571172'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: assigner
+        targetType: tool
+      id: 1751549571172-source-1751477066678-target
+      selected: false
+      source: '1751549571172'
+      sourceHandle: source
+      target: '1751477066678'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: 1751549379151-source-1751551213121-target
+      selected: false
+      source: '1751549379151'
+      sourceHandle: source
+      target: '1751551213121'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: tool
+      id: 1751551213121-source-1751477122941-target
+      selected: false
+      source: '1751551213121'
+      sourceHandle: source
+      target: '1751477122941'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: 1751476265416-source-1751551435266-target
+      selected: false
+      source: '1751476265416'
+      sourceHandle: source
+      target: '1751551435266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: 1751551435266-source-1751522618487-target
+      selected: false
+      source: '1751551435266'
+      sourceHandle: source
+      target: '1751522618487'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: http-request
+      id: 1751477066678-source-1751423387336-target
+      selected: false
+      source: '1751477066678'
+      sourceHandle: source
+      target: '1751423387336'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: answer
+        targetType: loop
+      id: 1751522583560-source-1751597525070-target
+      selected: false
+      source: '1751522583560'
+      sourceHandle: source
+      target: '1751597525070'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1751597525070'
+        sourceType: loop-start
+        targetType: code
+      id: 1751597525070start-source-1751597558364-target
+      selected: false
+      source: 1751597525070start
+      sourceHandle: source
+      target: '1751597558364'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1751597525070'
+        sourceType: code
+        targetType: code
+      id: 1751597558364-source-1751598727512-target
+      source: '1751597558364'
+      sourceHandle: source
+      target: '1751598727512'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: loop
+        targetType: http-request
+      id: 1751597525070-source-1751549379151-target
+      source: '1751597525070'
+      sourceHandle: source
+      target: '1751549379151'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: 1751423387336-source-1751554945775-target
+      source: '1751423387336'
+      sourceHandle: source
+      target: '1751554945775'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: 1751554945775-source-1751522583560-target
+      source: '1751554945775'
+      sourceHandle: source
+      target: '1751522583560'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: code
+      id: 1751350692717-1-1751602112328-target
+      source: '1751350692717'
+      sourceHandle: '1'
+      target: '1751602112328'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: 1751602112328-source-llm-target
+      source: '1751602112328'
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: true
+        title: 开始
+        type: start
+        variables: []
+      height: 53
+      id: '1751345396969'
+      position:
+        x: -818.0906984997164
+        y: 319.5913924806445
+      positionAbsolute:
+        x: -818.0906984997164
+        y: 319.5913924806445
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1751602112328'
+          - result
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}{{#1751602112328.result#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        model:
+          completion_params: {}
+          mode: chat
+          name: Qwen2.5-1.5B-Instruct
+          provider: yangyaofei/vllm/vllm
+        prompt_template:
+        - id: 0b7af4ea-2b07-4238-870f-e71951d65912
+          role: system
+          text: '你是智能巡线车任务助手，专门负责为用户查找到包含最新缺陷任务信息
+
+            ## 任务
+
+            为用户总结出巡线任务的详细信息
+
+
+            ## 输入
+
+            一个为字符串类型的包含一个任务详细信息的json文本{{#1751602112328.result#}}，例如
+
+            {''deleteFlag'': False, ''id'': 3070, ''taskCode'': ''159'', ''taskName'':
+            ''159'', ''startPos'': ''159'', ''taskTrip'': ''500m'', ''creator'': ''159'',
+            ''executor'': ''159'', ''execTime'': ''2025-07-01 21:05:02'', ''endTime'':
+            ''2025-07-02 08:52:36'', ''createTime'': ''2025-07-01 15:26:36'', ''taskStatus'':
+            ''待上传'', ''round'': 3, ''uploaded'': False, ''remark'': None, ''cloudTaskId'':
+            None}
+
+            其中，deleteFlag表示任务是否被删除，id为任务id， taskCode为任务编码，taskName为任务名称，taskPos为起始地点，为数值，单位米，taskTrip为任务终点，为数值，单位米，creator为创建者，executor为执行人，execTime为任务起始时间，endTime为任务停止时间，createTime为任务创建时间，taskStatus表示任务状态，remark表示任务备注，round,upload,cloudTaskId不需要介绍。
+
+
+            ## 回复
+
+            你需要为用户回复这个任务的基本信息'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: llm
+      position:
+        x: 69.4349584462467
+        y: 171.9619076955045
+      positionAbsolute:
+        x: 69.4349584462467
+        y: 171.9619076955045
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 104
+      id: answer
+      position:
+        x: 367.74753505877095
+        y: 156.2362783306073
+      positionAbsolute:
+        x: 367.74753505877095
+        y: 156.2362783306073
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        instruction: "你是任务参数提取专家，负责从用户输入中精确提取巡检任务信息。\n\n用户输入：{{#sys.query#}}\n\n支持的输入格式：\n\
+          1. **自然语言格式**：\n   \"创建一个隧道巡检任务，起始地点是0m，距离5m，创建人张三，执行人李四，备注：日常巡检\"\n\n2.\
+          \ **表格模板格式**：\n   ```\n   任务名称 | 起始地点 | 任务距离 | 创建人 | 执行人 | 备注\n   隧道巡检1\
+          \ | 0 | 5 | 张三 | 李四 | 日常巡检\n   ```\n\n参数映射：\n- taskCode: 任务编码（必填）这里参考{{#1751354702010.text#}}，并严格按照text内容映射\n\
+          - taskName: 任务名称，可以有各种字符（必填）\n- startPos: 起始地点（必填，单位必须是米，且只提取数字，如果用户输入0米，只提取0）\n\
+          - taskTrip: 任务距离（必填，单位必须是米，且只提取数字，如果用户输入5米，只提取5）\n- creator: 创建人（必填）\n-\
+          \ executor: 执行人（必填）\n- remark: 备注（选填，可为空字符串）\n\n请严格按照以下JSON格式返回：\n  \"tasks\"\
+          : \n    {\n      “taskCode\": \"任务编码\"\n      \"taskName\": \"任务名称\",\n\
+          \      \"startPos\": \"起始地点\",\n      \"taskTrip\": \"任务距离\",\n      \"\
+          creator\": \"创建人\",\n      \"executor\": \"执行人\",\n      \"remark\": \"\
+          备注信息\"\n    }\n\n注意：\n1. 如果某个必填参数缺失，将其值设为null\n2. 用户也有可能多次输入一个参数，这是合法的\n\
+          3. 确保提取的信息准确无误"
+        memory:
+          query_prompt_template: '{{#sys.query#}}
+
+
+            {{#sys.files#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 5
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: Qwen2.5-1.5B-Instruct
+          provider: yangyaofei/vllm/vllm
+        parameters:
+        - description: 任务名称
+          name: taskName
+          required: true
+          type: string
+        - description: 起始地点
+          name: startPos
+          required: true
+          type: string
+        - description: 任务距离
+          name: taskTrip
+          required: true
+          type: string
+        - description: 创建人姓名
+          name: creator
+          required: true
+          type: string
+        - description: 执行人姓名
+          name: executor
+          required: true
+          type: string
+        - description: '备注，可为空字符串
+
+            '
+          name: remark
+          required: false
+          type: string
+        - description: 任务编号
+          name: taskCode
+          required: true
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 参数提取器
+        type: parameter-extractor
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1751350653478'
+      position:
+        x: -215.3856255673818
+        y: 354.1541948554359
+      positionAbsolute:
+        x: -215.3856255673818
+        y: 354.1541948554359
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        classes:
+        - id: '1'
+          name: 查找最近的缺陷对应的任务信息
+        - id: '2'
+          name: 任务自动化创建执行与总结
+        desc: ''
+        instruction: "你是一个智能任务分类器，需要分析用户输入的意图类型。\n用户输入：{{#sys.query#}}\n请判断用户的意图属于以下哪一类：\n\
+          \n1. **new_flaw获取最新缺陷对应任务 (分类1)**: \n   - 用户希望知道最新缺陷对应哪个任务\n   - 用户希望知道最新缺陷的详细信息\n\
+          \n2. **task_automation(分类2)**:\n   - 创建新的巡检任务\n   - 包含明确的任务参数（任务名称、起始地点、距离等）\n\
+          \   - 要求完整的任务执行流程\n\n判断标准：\n- 如果用户明确提到\"创建任务\"、\"巡检\"、\"起始地点\"、\"距离\"、\"\
+          执行人\"、\"帮我完成任务\"等关键词，归类为“task_automation”\n- 如果用户希望找到最新的缺陷信息，这些一般归类为new_flaw\n\
+          - 如果包含完整的任务信息模板，归类为“task_automation”\n\n"
+        instructions: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}
+
+
+            {{#sys.files#}}'
+          window:
+            enabled: true
+            size: 50
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: Qwen2.5-1.5B-Instruct
+          provider: yangyaofei/vllm/vllm
+        query_variable_selector:
+        - '1751345396969'
+        - sys.query
+        selected: false
+        title: 问题分类器
+        topics: []
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 171
+      id: '1751350692717'
+      position:
+        x: -515.0144557077676
+        y: 319.5913924806445
+      positionAbsolute:
+        x: -515.0144557077676
+        y: 319.5913924806445
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-1854
+            key: ''
+            type: text
+            value: '{
+
+              "id": null,
+
+              "taskCode": "{{#1751354702010.text#}}",
+
+              "taskName": "{{#1751350653478.taskName#}}",
+
+              "startPos": "{{#1751350653478.startPos#}}",
+
+              "taskTrip": "{{#1751350653478.taskTrip#}}",
+
+              "creator": "{{#1751350653478.creator#}}",
+
+              "executor": "{{#1751350653478.executor#}}",
+
+              "remark": "{{#1751350653478.remark#}}"
+
+              }'
+          type: json
+        desc: ''
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 创建任务
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/task
+        variables: []
+      height: 139
+      id: '1751352738844'
+      position:
+        x: 353.0580655777152
+        y: 309.4029413090376
+      positionAbsolute:
+        x: 353.0580655777152
+        y: 309.4029413090376
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: e0657622-aba4-4a30-ad65-c76c6121eaca
+            value: '1'
+            varType: number
+            variable_selector:
+            - '1751350653478'
+            - __is_success
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 125
+      id: '1751352825356'
+      position:
+        x: 69.4349584462467
+        y: 314.5080839685805
+      positionAbsolute:
+        x: 69.4349584462467
+        y: 314.5080839685805
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1751350653478'
+          - __reason
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}
+
+
+            {{#sys.files#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params: {}
+          mode: chat
+          name: Qwen2.5-1.5B-Instruct
+          provider: yangyaofei/vllm/vllm
+        prompt_template:
+        - id: 4ff71f49-0c91-492e-9ac0-3a59763efd69
+          role: system
+          text: 你需要参考上面参数提取器失败的原因，并为用户简要说明为什么失败了
+        selected: false
+        title: LLM 2
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1751353458886'
+      position:
+        x: -533.6373718680261
+        y: 531.5988602806772
+      positionAbsolute:
+        x: -533.6373718680261
+        y: 531.5988602806772
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1751353458886.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 2
+        type: answer
+        variables: []
+      height: 104
+      id: '1751353649077'
+      position:
+        x: -147.59563332573725
+        y: 497.7487920414551
+      positionAbsolute:
+        x: -147.59563332573725
+        y: 497.7487920414551
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: '%Y-%m-%d %H:%M:%S'
+          form: form
+          human_description:
+            en_US: Time format in strftime standard.
+            ja_JP: Time format in strftime standard.
+            pt_BR: Time format in strftime standard.
+            zh_Hans: strftime 标准的时间格式。
+          label:
+            en_US: Format
+            ja_JP: Format
+            pt_BR: Format
+            zh_Hans: 格式
+          llm_description: null
+          max: null
+          min: null
+          name: format
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: UTC
+          form: form
+          human_description:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          label:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          llm_description: null
+          max: null
+          min: null
+          name: timezone
+          options:
+          - label:
+              en_US: UTC
+              ja_JP: UTC
+              pt_BR: UTC
+              zh_Hans: UTC
+            value: UTC
+          - label:
+              en_US: America/New_York
+              ja_JP: America/New_York
+              pt_BR: America/New_York
+              zh_Hans: 美洲/纽约
+            value: America/New_York
+          - label:
+              en_US: America/Los_Angeles
+              ja_JP: America/Los_Angeles
+              pt_BR: America/Los_Angeles
+              zh_Hans: 美洲/洛杉矶
+            value: America/Los_Angeles
+          - label:
+              en_US: America/Chicago
+              ja_JP: America/Chicago
+              pt_BR: America/Chicago
+              zh_Hans: 美洲/芝加哥
+            value: America/Chicago
+          - label:
+              en_US: America/Sao_Paulo
+              ja_JP: America/Sao_Paulo
+              pt_BR: América/São Paulo
+              zh_Hans: 美洲/圣保罗
+            value: America/Sao_Paulo
+          - label:
+              en_US: Asia/Shanghai
+              ja_JP: Asia/Shanghai
+              pt_BR: Asia/Shanghai
+              zh_Hans: 亚洲/上海
+            value: Asia/Shanghai
+          - label:
+              en_US: Asia/Ho_Chi_Minh
+              ja_JP: Asia/Ho_Chi_Minh
+              pt_BR: Ásia/Ho Chi Minh
+              zh_Hans: 亚洲/胡志明市
+            value: Asia/Ho_Chi_Minh
+          - label:
+              en_US: Asia/Tokyo
+              ja_JP: Asia/Tokyo
+              pt_BR: Asia/Tokyo
+              zh_Hans: 亚洲/东京
+            value: Asia/Tokyo
+          - label:
+              en_US: Asia/Dubai
+              ja_JP: Asia/Dubai
+              pt_BR: Asia/Dubai
+              zh_Hans: 亚洲/迪拜
+            value: Asia/Dubai
+          - label:
+              en_US: Asia/Kolkata
+              ja_JP: Asia/Kolkata
+              pt_BR: Asia/Kolkata
+              zh_Hans: 亚洲/加尔各答
+            value: Asia/Kolkata
+          - label:
+              en_US: Asia/Seoul
+              ja_JP: Asia/Seoul
+              pt_BR: Asia/Seoul
+              zh_Hans: 亚洲/首尔
+            value: Asia/Seoul
+          - label:
+              en_US: Asia/Singapore
+              ja_JP: Asia/Singapore
+              pt_BR: Asia/Singapore
+              zh_Hans: 亚洲/新加坡
+            value: Asia/Singapore
+          - label:
+              en_US: Europe/London
+              ja_JP: Europe/London
+              pt_BR: Europe/London
+              zh_Hans: 欧洲/伦敦
+            value: Europe/London
+          - label:
+              en_US: Europe/Berlin
+              ja_JP: Europe/Berlin
+              pt_BR: Europe/Berlin
+              zh_Hans: 欧洲/柏林
+            value: Europe/Berlin
+          - label:
+              en_US: Europe/Moscow
+              ja_JP: Europe/Moscow
+              pt_BR: Europe/Moscow
+              zh_Hans: 欧洲/莫斯科
+            value: Europe/Moscow
+          - label:
+              en_US: Australia/Sydney
+              ja_JP: Australia/Sydney
+              pt_BR: Australia/Sydney
+              zh_Hans: 澳大利亚/悉尼
+            value: Australia/Sydney
+          - label:
+              en_US: Pacific/Auckland
+              ja_JP: Pacific/Auckland
+              pt_BR: Pacific/Auckland
+              zh_Hans: 太平洋/奥克兰
+            value: Pacific/Auckland
+          - label:
+              en_US: Africa/Cairo
+              ja_JP: Africa/Cairo
+              pt_BR: Africa/Cairo
+              zh_Hans: 非洲/开罗
+            value: Africa/Cairo
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          format: ''
+          timezone: ''
+        provider_id: time
+        provider_name: time
+        provider_type: builtin
+        selected: false
+        title: 获取当前时间
+        tool_configurations:
+          format: TASK-%Y%m%d%H%M%S
+          timezone: Asia/Shanghai
+        tool_description: 一个用于获取当前时间的工具。
+        tool_label: 获取当前时间
+        tool_name: current_time
+        tool_parameters: {}
+        type: tool
+      height: 115
+      id: '1751354702010'
+      position:
+        x: -652.9446632602135
+        y: 171.9619076955045
+      positionAbsolute:
+        x: -652.9446632602135
+        y: 171.9619076955045
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: Content-Type:application/json
+        method: get
+        params: 'taskCode:{{#1751354702010.text#}}
+
+          pageNum:1
+
+          pageSize:10'
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 获取任务
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/task/list
+        variables: []
+      height: 139
+      id: '1751420670122'
+      position:
+        x: -835.5673261843389
+        y: 826.9778351420965
+      positionAbsolute:
+        x: -835.5673261843389
+        y: 826.9778351420965
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        items:
+        - input_type: variable
+          operation: over-write
+          value:
+          - '1751350653478'
+          - taskCode
+          variable_selector:
+          - conversation
+          - taskCode
+          write_mode: over-write
+        selected: false
+        title: 变量赋值
+        type: assigner
+        version: '2'
+      height: 87
+      id: '1751421707660'
+      position:
+        x: 890.9385680324672
+        y: 319.5913924806445
+      positionAbsolute:
+        x: 890.9385680324672
+        y: 319.5913924806445
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(body: str):\n    try:\n        dt = json.loads(body)\n\
+          \        print(dt['rows'][0]['id'])\n        return {\"result_id\": dt['rows'][0]['id']}\n\
+          \    except (json.JSONDecodeError, AttributeError, TypeError):\n       \
+          \ return {\"result_id\": 0}"
+        code_language: python3
+        desc: ''
+        outputs:
+          result_id:
+            children: null
+            type: number
+        selected: false
+        title: 提取出当前任务id
+        type: code
+        variables:
+        - value_selector:
+          - '1751420670122'
+          - body
+          variable: body
+      height: 53
+      id: '1751423016737'
+      position:
+        x: -538.2851075518947
+        y: 826.9778351420965
+      positionAbsolute:
+        x: -538.2851075518947
+        y: 826.9778351420965
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 启动任务
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/task/start/{{#conversation.id#}}
+        variables: []
+      height: 141
+      id: '1751423387336'
+      position:
+        x: 6.783203481289007
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 6.783203481289007
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-412
+            key: ''
+            type: text
+            value: '{
+
+              "taskId": "{{#1751423016737.result_id#}}",
+
+              "pageNum": "1",
+
+              "pageSize": "1000"
+
+              }'
+          type: json
+        desc: ''
+        headers: Content-Type:application/json
+        method: get
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 获取该任务所有缺陷信息
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/flaw/list
+        variables: []
+      height: 139
+      id: '1751476265416'
+      position:
+        x: 1360.72520808525
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 1360.72520808525
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1751551435266'
+          - result
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: Qwen2.5-1.5B-Instruct
+          provider: yangyaofei/vllm/vllm
+        prompt_template:
+        - id: 9bf315e7-3e22-4859-8984-c0e249e54856
+          role: system
+          text: "## 角色\n你是一个智能化的AGV巡线小车自动化任务执行助手，你需要根据当前任务执行的信息，检测到的缺陷，生成一份尽可能全面详细的报告\n\
+            \n## 任务\n你将会获取到这些任务执行的相关信息\n\n### 任务基本信息\n- 任务编号： {{#1751350653478.taskCode#}}\n\
+            - 任务名称： {{#1751350653478.taskName#}}\n- 起始位置： {{#1751350653478.startPos#}}（单位：米）\n\
+            - 任务距离：{{#1751350653478.taskTrip#}}（单位：米）\n- 创建人： {{#1751350653478.creator#}}\n\
+            - 执行人：{{#1751350653478.executor#}}\n- 任务开始时间：{{#1751477066678.text#}}\n\
+            - 任务结束时间： {{#1751477122941.text#}}\n\n### 缺陷统计\n该任务获取的缺陷为上下文中的内容，你需要先对这些缺陷数据进行统一整理，然后输出总结有用的信息\n\
+            \n## 回复\n 请生成包含以下内容的专业总结报告：\n  1. **自动化执行概况**\n  2. **缺陷检测分析**\n  3. **维护建议**"
+        selected: false
+        title: LLM 总结
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1751476636196'
+      position:
+        x: 1664.8585902259397
+        y: 755.6685260557618
+      positionAbsolute:
+        x: 1664.8585902259397
+        y: 755.6685260557618
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: '%Y-%m-%d %H:%M:%S'
+          form: form
+          human_description:
+            en_US: Time format in strftime standard.
+            ja_JP: Time format in strftime standard.
+            pt_BR: Time format in strftime standard.
+            zh_Hans: strftime 标准的时间格式。
+          label:
+            en_US: Format
+            ja_JP: Format
+            pt_BR: Format
+            zh_Hans: 格式
+          llm_description: null
+          max: null
+          min: null
+          name: format
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: UTC
+          form: form
+          human_description:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          label:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          llm_description: null
+          max: null
+          min: null
+          name: timezone
+          options:
+          - label:
+              en_US: UTC
+              ja_JP: UTC
+              pt_BR: UTC
+              zh_Hans: UTC
+            value: UTC
+          - label:
+              en_US: America/New_York
+              ja_JP: America/New_York
+              pt_BR: America/New_York
+              zh_Hans: 美洲/纽约
+            value: America/New_York
+          - label:
+              en_US: America/Los_Angeles
+              ja_JP: America/Los_Angeles
+              pt_BR: America/Los_Angeles
+              zh_Hans: 美洲/洛杉矶
+            value: America/Los_Angeles
+          - label:
+              en_US: America/Chicago
+              ja_JP: America/Chicago
+              pt_BR: America/Chicago
+              zh_Hans: 美洲/芝加哥
+            value: America/Chicago
+          - label:
+              en_US: America/Sao_Paulo
+              ja_JP: America/Sao_Paulo
+              pt_BR: América/São Paulo
+              zh_Hans: 美洲/圣保罗
+            value: America/Sao_Paulo
+          - label:
+              en_US: Asia/Shanghai
+              ja_JP: Asia/Shanghai
+              pt_BR: Asia/Shanghai
+              zh_Hans: 亚洲/上海
+            value: Asia/Shanghai
+          - label:
+              en_US: Asia/Ho_Chi_Minh
+              ja_JP: Asia/Ho_Chi_Minh
+              pt_BR: Ásia/Ho Chi Minh
+              zh_Hans: 亚洲/胡志明市
+            value: Asia/Ho_Chi_Minh
+          - label:
+              en_US: Asia/Tokyo
+              ja_JP: Asia/Tokyo
+              pt_BR: Asia/Tokyo
+              zh_Hans: 亚洲/东京
+            value: Asia/Tokyo
+          - label:
+              en_US: Asia/Dubai
+              ja_JP: Asia/Dubai
+              pt_BR: Asia/Dubai
+              zh_Hans: 亚洲/迪拜
+            value: Asia/Dubai
+          - label:
+              en_US: Asia/Kolkata
+              ja_JP: Asia/Kolkata
+              pt_BR: Asia/Kolkata
+              zh_Hans: 亚洲/加尔各答
+            value: Asia/Kolkata
+          - label:
+              en_US: Asia/Seoul
+              ja_JP: Asia/Seoul
+              pt_BR: Asia/Seoul
+              zh_Hans: 亚洲/首尔
+            value: Asia/Seoul
+          - label:
+              en_US: Asia/Singapore
+              ja_JP: Asia/Singapore
+              pt_BR: Asia/Singapore
+              zh_Hans: 亚洲/新加坡
+            value: Asia/Singapore
+          - label:
+              en_US: Europe/London
+              ja_JP: Europe/London
+              pt_BR: Europe/London
+              zh_Hans: 欧洲/伦敦
+            value: Europe/London
+          - label:
+              en_US: Europe/Berlin
+              ja_JP: Europe/Berlin
+              pt_BR: Europe/Berlin
+              zh_Hans: 欧洲/柏林
+            value: Europe/Berlin
+          - label:
+              en_US: Europe/Moscow
+              ja_JP: Europe/Moscow
+              pt_BR: Europe/Moscow
+              zh_Hans: 欧洲/莫斯科
+            value: Europe/Moscow
+          - label:
+              en_US: Australia/Sydney
+              ja_JP: Australia/Sydney
+              pt_BR: Australia/Sydney
+              zh_Hans: 澳大利亚/悉尼
+            value: Australia/Sydney
+          - label:
+              en_US: Pacific/Auckland
+              ja_JP: Pacific/Auckland
+              pt_BR: Pacific/Auckland
+              zh_Hans: 太平洋/奥克兰
+            value: Pacific/Auckland
+          - label:
+              en_US: Africa/Cairo
+              ja_JP: Africa/Cairo
+              pt_BR: Africa/Cairo
+              zh_Hans: 非洲/开罗
+            value: Africa/Cairo
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          format: ''
+          timezone: ''
+        provider_id: time
+        provider_name: time
+        provider_type: builtin
+        selected: false
+        title: 获取任务开始时间
+        tool_configurations:
+          format: '%Y-%m-%d %H:%M:%S'
+          timezone: Asia/Shanghai
+        tool_description: 一个用于获取当前时间的工具。
+        tool_label: 获取当前时间
+        tool_name: current_time
+        tool_parameters: {}
+        type: tool
+      height: 115
+      id: '1751477066678'
+      position:
+        x: -135.4201497062026
+        y: 906.7695788646788
+      positionAbsolute:
+        x: -135.4201497062026
+        y: 906.7695788646788
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: '%Y-%m-%d %H:%M:%S'
+          form: form
+          human_description:
+            en_US: Time format in strftime standard.
+            ja_JP: Time format in strftime standard.
+            pt_BR: Time format in strftime standard.
+            zh_Hans: strftime 标准的时间格式。
+          label:
+            en_US: Format
+            ja_JP: Format
+            pt_BR: Format
+            zh_Hans: 格式
+          llm_description: null
+          max: null
+          min: null
+          name: format
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: UTC
+          form: form
+          human_description:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          label:
+            en_US: Timezone
+            ja_JP: Timezone
+            pt_BR: Timezone
+            zh_Hans: 时区
+          llm_description: null
+          max: null
+          min: null
+          name: timezone
+          options:
+          - label:
+              en_US: UTC
+              ja_JP: UTC
+              pt_BR: UTC
+              zh_Hans: UTC
+            value: UTC
+          - label:
+              en_US: America/New_York
+              ja_JP: America/New_York
+              pt_BR: America/New_York
+              zh_Hans: 美洲/纽约
+            value: America/New_York
+          - label:
+              en_US: America/Los_Angeles
+              ja_JP: America/Los_Angeles
+              pt_BR: America/Los_Angeles
+              zh_Hans: 美洲/洛杉矶
+            value: America/Los_Angeles
+          - label:
+              en_US: America/Chicago
+              ja_JP: America/Chicago
+              pt_BR: America/Chicago
+              zh_Hans: 美洲/芝加哥
+            value: America/Chicago
+          - label:
+              en_US: America/Sao_Paulo
+              ja_JP: America/Sao_Paulo
+              pt_BR: América/São Paulo
+              zh_Hans: 美洲/圣保罗
+            value: America/Sao_Paulo
+          - label:
+              en_US: Asia/Shanghai
+              ja_JP: Asia/Shanghai
+              pt_BR: Asia/Shanghai
+              zh_Hans: 亚洲/上海
+            value: Asia/Shanghai
+          - label:
+              en_US: Asia/Ho_Chi_Minh
+              ja_JP: Asia/Ho_Chi_Minh
+              pt_BR: Ásia/Ho Chi Minh
+              zh_Hans: 亚洲/胡志明市
+            value: Asia/Ho_Chi_Minh
+          - label:
+              en_US: Asia/Tokyo
+              ja_JP: Asia/Tokyo
+              pt_BR: Asia/Tokyo
+              zh_Hans: 亚洲/东京
+            value: Asia/Tokyo
+          - label:
+              en_US: Asia/Dubai
+              ja_JP: Asia/Dubai
+              pt_BR: Asia/Dubai
+              zh_Hans: 亚洲/迪拜
+            value: Asia/Dubai
+          - label:
+              en_US: Asia/Kolkata
+              ja_JP: Asia/Kolkata
+              pt_BR: Asia/Kolkata
+              zh_Hans: 亚洲/加尔各答
+            value: Asia/Kolkata
+          - label:
+              en_US: Asia/Seoul
+              ja_JP: Asia/Seoul
+              pt_BR: Asia/Seoul
+              zh_Hans: 亚洲/首尔
+            value: Asia/Seoul
+          - label:
+              en_US: Asia/Singapore
+              ja_JP: Asia/Singapore
+              pt_BR: Asia/Singapore
+              zh_Hans: 亚洲/新加坡
+            value: Asia/Singapore
+          - label:
+              en_US: Europe/London
+              ja_JP: Europe/London
+              pt_BR: Europe/London
+              zh_Hans: 欧洲/伦敦
+            value: Europe/London
+          - label:
+              en_US: Europe/Berlin
+              ja_JP: Europe/Berlin
+              pt_BR: Europe/Berlin
+              zh_Hans: 欧洲/柏林
+            value: Europe/Berlin
+          - label:
+              en_US: Europe/Moscow
+              ja_JP: Europe/Moscow
+              pt_BR: Europe/Moscow
+              zh_Hans: 欧洲/莫斯科
+            value: Europe/Moscow
+          - label:
+              en_US: Australia/Sydney
+              ja_JP: Australia/Sydney
+              pt_BR: Australia/Sydney
+              zh_Hans: 澳大利亚/悉尼
+            value: Australia/Sydney
+          - label:
+              en_US: Pacific/Auckland
+              ja_JP: Pacific/Auckland
+              pt_BR: Pacific/Auckland
+              zh_Hans: 太平洋/奥克兰
+            value: Pacific/Auckland
+          - label:
+              en_US: Africa/Cairo
+              ja_JP: Africa/Cairo
+              pt_BR: Africa/Cairo
+              zh_Hans: 非洲/开罗
+            value: Africa/Cairo
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          format: ''
+          timezone: ''
+        provider_id: time
+        provider_name: time
+        provider_type: builtin
+        selected: false
+        title: 获取任务结束时间
+        tool_configurations:
+          format: '%Y-%m-%d %H:%M:%S'
+          timezone: Asia/Shanghai
+        tool_description: 一个用于获取当前时间的工具。
+        tool_label: 获取当前时间
+        tool_name: current_time
+        tool_parameters: {}
+        type: tool
+      height: 115
+      id: '1751477122941'
+      position:
+        x: 1226.4353218223666
+        y: 917.9159141699006
+      positionAbsolute:
+        x: 1226.4353218223666
+        y: 917.9159141699006
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1751476636196.text#}}'
+        desc: ''
+        selected: false
+        title: 任务总结回复
+        type: answer
+        variables: []
+      height: 104
+      id: '1751477568907'
+      position:
+        x: 1940.5273846710043
+        y: 755.6685260557618
+      positionAbsolute:
+        x: 1940.5273846710043
+        y: 755.6685260557618
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: 我已经按照要求为您创建了任务，等待开始任务开始......
+        desc: ''
+        selected: false
+        title: 直接回复 4
+        type: answer
+        variables: []
+      height: 117
+      id: '1751522487388'
+      position:
+        x: 622.0174512307473
+        y: 314.5080839685805
+      positionAbsolute:
+        x: 622.0174512307473
+        y: 314.5080839685805
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: 任务已经启动，任务编号{{#1751354702010.text#}}
+        desc: ''
+        selected: false
+        title: 直接回复 5
+        type: answer
+        variables: []
+      height: 120
+      id: '1751522583560'
+      position:
+        x: 546.5962195922905
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 546.5962195922905
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: 任务已经完成，正在为您生成任务总结......
+        desc: ''
+        selected: false
+        title: 直接回复 6
+        type: answer
+        variables: []
+      height: 117
+      id: '1751522618487'
+      position:
+        x: 1540.5094350413824
+        y: 589.9307037561784
+      positionAbsolute:
+        x: 1540.5094350413824
+        y: 589.9307037561784
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 任务完成
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/task/end/{{#conversation.id#}}?isAbort=false
+        variables: []
+      height: 157
+      id: '1751549379151'
+      position:
+        x: 826.6149314629656
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 826.6149314629656
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        items:
+        - input_type: variable
+          operation: over-write
+          value:
+          - '1751423016737'
+          - result_id
+          variable_selector:
+          - conversation
+          - id
+          write_mode: over-write
+        selected: false
+        title: 变量赋值 2
+        type: assigner
+        version: '2'
+      height: 87
+      id: '1751549571172'
+      position:
+        x: -265.71020448591423
+        y: 771.4491946064794
+      positionAbsolute:
+        x: -265.71020448591423
+        y: 771.4491946064794
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 停止
+        type: http-request
+        url: http://192.168.2.57/prod-api/agv/movement/stop
+        variables: []
+      height: 139
+      id: '1751551213121'
+      position:
+        x: 1091.5091004134038
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 1091.5091004134038
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(arg1, id):\n    dt = json.loads(arg1)\n   \
+          \ all_flaws = dt['rows']\n    filt_flaws = [flaw for flaw in all_flaws if\
+          \ flaw['taskId'] == id]\n    \n    # 将每个缺陷字典转换成格式化字符串\n    flaw_strings\
+          \ = [\n        f\"{i+1}. {flaw['flawName']} (ID: {flaw['id']}, 是否确认: {flaw['confirmed']},\
+          \ 检查到缺陷时间: {flaw['createTime']}, 缺陷距离: {flaw['flawDistance']})\"\n     \
+          \   for i, flaw in enumerate(filt_flaws)\n    ]\n    \n    # 用换行符拼接所有字符串\n\
+          \    result_str = \"\\n\".join(flaw_strings)\n    \n    return {\n     \
+          \   \"result\": result_str  # 返回格式化后的字符串\n    }"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 提取缺陷
+        type: code
+        variables:
+        - value_selector:
+          - '1751476265416'
+          - body
+          variable: arg1
+        - value_selector:
+          - conversation
+          - id
+          variable: id
+      height: 53
+      id: '1751551435266'
+      position:
+        x: 1259.7476008871174
+        y: 589.9307037561784
+      positionAbsolute:
+        x: 1259.7476008871174
+        y: 589.9307037561784
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import requests\ndef main() -> dict:\n\n    response = requests.post(f'http://192.168.2.57/prod-api/agv/movement/forward')\n\
+          \n    return {\n        \"result\": 'yes',\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 前进
+        type: code
+        variables: []
+      height: 53
+      id: '1751554945775'
+      position:
+        x: 276.80427378094134
+        y: 748.1785427623522
+      positionAbsolute:
+        x: 276.80427378094134
+        y: 748.1785427623522
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        break_conditions:
+        - comparison_operator: is
+          id: 2defe894-da33-48b6-884c-ac2c6f8670a7
+          value: '1'
+          varType: string
+          variable_selector:
+          - '1751597558364'
+          - result
+        desc: ''
+        error_handle_mode: terminated
+        logical_operator: and
+        loop_count: 100
+        loop_variables: []
+        selected: false
+        start_node_id: 1751597525070start
+        title: 循环
+        type: loop
+        width: 649.484264188537
+      height: 147
+      id: '1751597525070'
+      position:
+        x: 470.73379085825627
+        y: 567.2301497892815
+      positionAbsolute:
+        x: 470.73379085825627
+        y: 567.2301497892815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 649
+      zIndex: 1
+    - data:
+        desc: ''
+        isInLoop: true
+        selected: false
+        title: ''
+        type: loop-start
+      draggable: false
+      height: 48
+      id: 1751597525070start
+      parentId: '1751597525070'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 494.73379085825627
+        y: 635.2301497892815
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-loop-start
+      width: 44
+      zIndex: 1002
+    - data:
+        code: "import requests\nimport json\n\n\ndef main(start, trip, task_id) ->\
+          \ dict:\n    start_pos = float(start)\n    trip_dis = float(trip)\n\n  \
+          \  response = requests.get(\"http://192.168.2.57/prod-api/agv/movement/heartbeat\"\
+          )\n    if response.status_code == 200:\n        dt = response.json()['data']\n\
+          \        cur_pos = dt['currentPosition']\n        cur_pos1 = float(cur_pos)\n\
+          \n        if cur_pos1 >= start_pos + trip_dis:\n            return{\n  \
+          \              \"result\": \"1\"\n            }\n        \n    return {\n\
+          \        \"result\": \"0\"\n    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1751597525070'
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 获取实时位置
+        type: code
+        variables:
+        - value_selector:
+          - '1751350653478'
+          - startPos
+          variable: start
+        - value_selector:
+          - '1751350653478'
+          - taskTrip
+          variable: trip
+        - value_selector:
+          - conversation
+          - id
+          variable: task_id
+      height: 53
+      id: '1751597558364'
+      parentId: '1751597525070'
+      position:
+        x: 85.48426418853705
+        y: 65
+      positionAbsolute:
+        x: 556.2180550467933
+        y: 632.2301497892815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "import time\n\ndef main() -> dict:\n    time.sleep(0.3)\n    return\
+          \ {\n        \"result11\": 0,\n    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1751597525070'
+        outputs:
+          result11:
+            children: null
+            type: number
+        selected: false
+        title: 睡眠0.3s
+        type: code
+        variables: []
+      height: 53
+      id: '1751598727512'
+      parentId: '1751597525070'
+      position:
+        x: 389.48426418853705
+        y: 65
+      positionAbsolute:
+        x: 860.2180550467933
+        y: 632.2301497892815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "import requests\nimport json\n\nbase_url = \"http://192.168.2.57/prod-api\"\
+          \n\ndef main():\n    params = { 'pageNum': 1, 'pageSize': 1000 }\n    response\
+          \ = requests.get(f\"{base_url}/agv/flaw/list\", params=params)\n    data\
+          \ = response.json()\n    if data.get('code') == 200:\n        rows = data.get('rows',\
+          \ [])\n        if rows:\n            latest_task = rows[len(rows) - 1]\n\
+          \            task_id = latest_task.get('taskId')\n            print(f\"\
+          最新任务ID: {task_id}\")\n        else:\n            print(\"没有找到任务\")\n\n \
+          \   # 获取任务详情\n    res = requests.get(f\"{base_url}/agv/task/{task_id}\"\
+          )\n    dt = res.json()\n    if dt.get('code') == 200:\n        task_detail\
+          \ = str(dt.get('data'))\n        print(task_detail)\n    else:\n       \
+          \ print(f\"获取任务详情失败: {dt.get('msg')}\")\n\n    return{\n        \"result\"\
+          : task_detail\n    }"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 代码执行 6
+        type: code
+        variables: []
+      height: 53
+      id: '1751602112328'
+      position:
+        x: -222.36528332277533
+        y: 209.82704791521368
+      positionAbsolute:
+        x: -222.36528332277533
+        y: 209.82704791521368
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 808.500311932647
+      y: -131.4117669606352
+      zoom: 0.6241652744508107
